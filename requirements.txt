@@ -1,3 +1,2 @@
 peewee
 webdataset
-pillow

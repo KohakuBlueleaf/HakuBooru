@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     version="0.0.1.dev1",
     license="Apache 2.0",
-    url="https://github.com/KohakuBlueleaf/LyCORIS",
+    url="https://github.com/KohakuBlueleaf/HakuBooru",
     description="Text-image dataset maker for anime-style images",
     author="Shih-Ying Yeh(KohakuBlueLeaf)",
     author_email="apolloyeh0123@gmail.com",
