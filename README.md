@@ -31,8 +31,12 @@ The combination of these features not only preserves the integrity of source pla
 
 ~~Thx ChatGPT4 for this introduction :p~~
 
+## Resources
 
-## Usage[WIP]
+* [danbooru2023-sqlite](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-sqlite)
+* [danbooru2023-webp-2Mpixel](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-webp-2Mpixel)
+
+## Setup
 
 You can install this package through PyPi with pip utilities:
 
@@ -50,4 +54,8 @@ python -m pip install -e .
 ```
 
 
+## Usage[WIP]
+
 The detail documents on the components are WIP, you can check the example.py to see some basic usage of it.
+
+It is recommended to clone this repository and follow the instruction in data/ and images/ to put the database and image-tars correctly.
