@@ -23,6 +23,10 @@ if __name__ == "__main__":
     )
 
     logger.info("Querying posts")
+    # Querying posts for:
+    # * tag_list have "umamusume"
+    # * post's rating < 2 (general/sensitive only)
+    # * post's score > 20
     choosed_post = list(
         get_post_by_tag(get_tag_by_name("umamusume"))
         .where(Post.rating < 2)
