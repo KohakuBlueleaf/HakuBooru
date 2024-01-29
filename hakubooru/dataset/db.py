@@ -1,9 +1,46 @@
+import pathlib
+import sqlite3
+
+from numpy import base_repr
 from peewee import *
 from playhouse.sqlite_ext import FTS5Model, SearchField
 from playhouse.shortcuts import model_to_dict
 
 
-db: SqliteDatabase = None
+class MemoryConnection(sqlite3.Connection):
+    def __init__(self, dbname, *args, **kwargs):
+        load_conn = sqlite3.connect(dbname)
+        super(MemoryConnection, self).__init__(":memory:", *args, **kwargs)
+        load_conn.backup(self)
+        load_conn.close()
+
+
+class SqliteMemDatabase(SqliteDatabase):
+    def __init__(self, database, *args, **kwargs) -> None:
+        self.dbname = database
+        super().__init__(database, *args, factory=MemoryConnection, **kwargs)
+
+    def reload(self, dbname=None):
+        if dbname is None:
+            dbname = self.dbname
+        load_conn = sqlite3.connect(dbname)
+        try:
+            load_conn.backup(self._state.conn)
+        finally:
+            load_conn.close()
+
+    def save(self, dbname=None):
+        if dbname is None:
+            dbname = self.dbname
+        save_conn = sqlite3.connect(dbname)
+        try:
+            self._state.conn.backup(save_conn)
+        finally:
+            save_conn.close()
+
+
+# db = SqliteMemDatabase(pathlib.Path(__file__).parent.resolve() / "danbooru2023.db")
+db = SqliteDatabase(pathlib.Path(__file__).parent.resolve() / "danbooru2023.db")
 tag_cache_map = {}
 
 
@@ -18,7 +55,10 @@ class TagListField(TextField, SearchField):
         if isinstance(value, str):
             return value
         assert all(isinstance(tag, (Tag, int)) for tag in value)
-        return "".join(f"${tag.id if isinstance(tag, Tag) else tag}#" for tag in value)
+        return "".join(
+            f"${base_repr(tag.id, 36) if isinstance(tag, Tag) else tag}#"
+            for tag in value
+        )
 
     def python_value(self, value):
         if value is not None:
@@ -117,19 +157,10 @@ class Tag(BaseModel):
         return f"<Tag: {self.name}>"
 
 
-def load_db(db_file: str):
-    global db
-    db = SqliteDatabase(db_file)
-    Post._meta.database = db
-    PostFTS._meta.database = db
-    Tag._meta.database = db
-    db.connect()
-
-
 if __name__ == "__main__":
     from objprint import objprint
 
-    load_db("./data/danbooru2023.db")
+    db.connect()
     for index in db.get_indexes("post"):
         print(index)
     post = Post.select().first()
