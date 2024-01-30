@@ -27,5 +27,9 @@ logger.propagate = False
 
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(ColoredFormatter("[%(name)s]-%(levelname)s: %(message)s"))
+    handler.setFormatter(
+        ColoredFormatter(
+            "%(asctime)s|[%(name)s]-%(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S"
+        )
+    )
     logger.addHandler(handler)
