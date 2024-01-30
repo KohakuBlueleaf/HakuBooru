@@ -157,6 +157,15 @@ class Tag(BaseModel):
         return f"<Tag: {self.name}>"
 
 
+def load_db(db_file: str):
+    global db
+    db = SqliteDatabase(db_file)
+    Post._meta.database = db
+    PostFTS._meta.database = db
+    Tag._meta.database = db
+    db.connect()
+
+
 if __name__ == "__main__":
     from objprint import objprint
 
