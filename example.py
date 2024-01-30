@@ -2,7 +2,7 @@ import logging
 
 from hakubooru.dataset import load_db, Post
 from hakubooru.dataset.utils import (
-    get_post_by_tag,
+    get_post_by_tags,
     get_tag_by_name,
 )
 from hakubooru.caption import KohakuCaptioner
@@ -24,11 +24,23 @@ if __name__ == "__main__":
 
     logger.info("Querying posts")
     # Querying posts for:
-    # * tag_list have "umamusume"
-    # * post's rating < 2 (general/sensitive only)
-    # * post's score > 20
+    # * whose tag_list have any of the following tags:
+    #   * rice_shower_(umamusume)
+    #   * agnes_digital_(umamusume)
+    #   * mr._c.b._(umamusume)
+    # * whose rating < 2 (general/sensitive only)
+    # * whose score > 20
     choosed_post = list(
-        get_post_by_tag(get_tag_by_name("umamusume"))
+        get_post_by_tags(
+            [
+                get_tag_by_name(tag)
+                for tag in [
+                    "rice_shower_(umamusume)",
+                    "agnes_digital_(umamusume)",
+                    "mr._c.b._(umamusume)",
+                ]
+            ]
+        )
         .where(Post.rating < 2)
         .where(Post.score > 20)
     )
