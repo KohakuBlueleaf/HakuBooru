@@ -1,4 +1,4 @@
-from .db import load_db, db, Post, PostFTS, Tag
+from .db import load_db, db, Post, PostTagRelation, Tag
 
 
 if __name__ == "__main__":
