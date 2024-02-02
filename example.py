@@ -18,7 +18,7 @@ if __name__ == "__main__":
     logger.info("Build exporter")
     exporter = Exporter(
         "./images",
-        saver=FileSaver("./out/umamusume"),
+        saver=FileSaver("./out/example"),
         captioner=KohakuCaptioner(),
     )
 
@@ -26,23 +26,27 @@ if __name__ == "__main__":
     # Querying posts for:
     # * whose tag_list have any of the following tags:
     #   * rice_shower_(umamusume)
-    #   * agnes_digital_(umamusume)
-    #   * mr._c.b._(umamusume)
-    # * whose rating < 2 (general/sensitive only)
-    # * whose score > 20
+    #   * mejiro_mcqueen_(umamusume)
+    #   * daiwa_scarlet_(umamusume)
+    #   * amiya_(arknights)
+    #   * texas_(arknights)
+    #   * skadi_(arknights)
+    # * whose rating < 3 (avoid explicit images)
+    # * whose score > 10 (better preference)
     choosed_post = list(
         get_post_by_tags(
             [
                 get_tag_by_name(tag)
                 for tag in [
                     "rice_shower_(umamusume)",
-                    "agnes_digital_(umamusume)",
-                    "mr._c.b._(umamusume)",
+                    "mejiro_mcqueen_(umamusume)",
+                    "daiwa_scarlet_(umamusume)",
+                    "amiya_(arknights)",
+                    "texas_(arknights)",
+                    "skadi_(arknights)",
                 ]
             ]
-        )
-        .where(Post.rating < 2)
-        .where(Post.score > 20)
+        ).where(Post.rating < 2, Post.score > 10)
     )
     logger.info(f"Found {len(choosed_post)} posts")
 
