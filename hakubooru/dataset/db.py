@@ -1,10 +1,6 @@
-import pathlib
 import sqlite3
 
-from numpy import base_repr
 from peewee import *
-from playhouse.sqlite_ext import FTS5Model, SearchField
-from playhouse.shortcuts import model_to_dict
 
 
 class MemoryConnection(sqlite3.Connection):
@@ -39,8 +35,7 @@ class SqliteMemDatabase(SqliteDatabase):
             save_conn.close()
 
 
-# db = SqliteMemDatabase(pathlib.Path(__file__).parent.resolve() / "danbooru2023.db")
-db = SqliteDatabase(pathlib.Path(__file__).parent.resolve() / "danbooru2023.db")
+db: SqliteDatabase = None
 tag_cache_map = {}
 
 
@@ -48,23 +43,6 @@ def get_tag_by_id(id):
     if id not in tag_cache_map:
         tag_cache_map[id] = Tag.get_by_id(id)
     return tag_cache_map[id]
-
-
-class TagListField(TextField, SearchField):
-    def db_value(self, value):
-        if isinstance(value, str):
-            return value
-        assert all(isinstance(tag, (Tag, int)) for tag in value)
-        return "".join(
-            f"${base_repr(tag.id, 36) if isinstance(tag, Tag) else tag}#"
-            for tag in value
-        )
-
-    def python_value(self, value):
-        if value is not None:
-            return [
-                get_tag_by_id(int(tag, 36)) for tag in value[1:-1].split("#$") if tag
-            ]
 
 
 class EnumField(IntegerField):
@@ -87,6 +65,29 @@ class EnumField(IntegerField):
 class BaseModel(Model):
     class Meta:
         database = db
+
+
+class Tag(BaseModel):
+    id = IntegerField(primary_key=True)
+    name = CharField(unique=True)
+    type = EnumField(["general", "artist", "character", "copyright", "meta"])
+    popularity = IntegerField()
+    _posts: ManyToManyField
+    _posts_cache = None
+
+    @property
+    def posts(self):
+        if self._posts_cache is None:
+            self._posts_cache = list(self._posts)
+        return self._posts_cache
+
+    def __str__(self):
+        return f"<Tag '{self.name}'>"
+
+    def __repr__(self):
+        from objprint import objstr
+
+        return f"<Tag|#{self.id}|{self.name}|{self.type[:2]}>"
 
 
 class Post(BaseModel):
@@ -120,12 +121,9 @@ class Post(BaseModel):
     large_file_url = CharField()
     preview_file_url = CharField()
 
-    tag_list = TagListField()
-    tag_list_general = TagListField()
-    tag_list_artist = TagListField()
-    tag_list_character = TagListField()
-    tag_list_copyright = TagListField()
-    tag_list_meta = TagListField()
+    _tags: ManyToManyField
+    _tags_cache = None
+    _tag_list = TextField(column_name="tag_list")
 
     tag_count = IntegerField()
     tag_count_general = IntegerField()
@@ -134,45 +132,64 @@ class Post(BaseModel):
     tag_count_copyright = IntegerField()
     tag_count_meta = IntegerField()
 
+    @property
+    def tag_list(self):
+        if self._tags_cache is None:
+            self._tags_cache = list(self._tags)
+        return self._tags_cache
 
-class PostFTS(FTS5Model):
-    class Meta:
-        database = db
+    @property
+    def tag_list_general(self):
+        return [tag for tag in self.tag_list if tag.type == "general"]
 
-    tag_list = TagListField()
-    tag_list_general = TagListField()
-    tag_list_artist = TagListField()
-    tag_list_character = TagListField()
-    tag_list_copyright = TagListField()
-    tag_list_meta = TagListField()
+    @property
+    def tag_list_artist(self):
+        return [tag for tag in self.tag_list if tag.type == "artist"]
+
+    @property
+    def tag_list_character(self):
+        return [tag for tag in self.tag_list if tag.type == "character"]
+
+    @property
+    def tag_list_copyright(self):
+        return [tag for tag in self.tag_list if tag.type == "copyright"]
+
+    @property
+    def tag_list_meta(self):
+        return [tag for tag in self.tag_list if tag.type == "meta"]
 
 
-class Tag(BaseModel):
-    id = IntegerField(primary_key=True)
-    name = CharField(unique=True)
-    type = EnumField(["general", "artist", "character", "copyright", "meta"])
-    popularity = IntegerField()
+class PostTagRelation(BaseModel):
+    post = ForeignKeyField(Post, backref="post_tags")
+    tag = ForeignKeyField(Tag, backref="tag_posts")
 
-    def __str__(self):
-        return f"<Tag: {self.name}>"
+
+tags = ManyToManyField(Tag, backref="_posts", through_model=PostTagRelation)
+tags.bind(Post, "_tags", set_attribute=True)
 
 
 def load_db(db_file: str):
     global db
     db = SqliteDatabase(db_file)
     Post._meta.database = db
-    PostFTS._meta.database = db
     Tag._meta.database = db
+    PostTagRelation._meta.database = db
     db.connect()
 
 
 if __name__ == "__main__":
-    from objprint import objprint
+    load_db("danbooru2023.db")
+    post = Post.get_by_id(1)
+    print(post.tag_count_general, len(post.tag_list_general), post.tag_list_general)
+    print(post.tag_count_artist, len(post.tag_list_artist), post.tag_list_artist)
+    print(
+        post.tag_count_character, len(post.tag_list_character), post.tag_list_character
+    )
+    print(
+        post.tag_count_copyright, len(post.tag_list_copyright), post.tag_list_copyright
+    )
+    print(post.tag_count_meta, len(post.tag_list_meta), post.tag_list_meta)
 
-    db.connect()
-    for index in db.get_indexes("post"):
-        print(index)
-    post = Post.select().first()
-    objprint(model_to_dict(post))
-    # db.create_tables([Post, Tag])
-    # db.save()
+    tag = Tag.select().where(Tag.name == "umamusume").first()
+    print(tag)
+    print(len(tag.posts))
