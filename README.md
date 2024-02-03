@@ -56,7 +56,8 @@ python -m pip install -e .
 This project simplifies the workflow for exporting images from tar files into designated folders, consisting of four main components:
 
 - **Post Chooser:** Selects relevant posts from a dataset.
-- **Captioner:** Generates captions for images based on the image itself or its metadata. An example is the KohakuCaptioner.
+  - Normally you only need peewee's api to query all the post you want.
+- **Captioner:** Generates captions for images based on the image itself or its metadata.
 - **Saver:** Saves the targeted data (image bytes, caption text, and ID) on disk. Includes two built-in savers:
   - **File Saver:** Saves images and captions into separate files with a shared base name.
   - **WDS Saver:** Saves data into a tar file in webdataset format.
@@ -67,11 +68,12 @@ This project simplifies the workflow for exporting images from tar files into de
 To effectively utilize this project, follow these steps:
 
 1. **Preparation:**
+
    - Download the metadata database from [Hugging Face - danbooru2023.db](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-sqlite/blob/main/danbooru2023.db).
    - Download the image tar files from [Hugging Face - danbooru2023-webp-2Mpixel](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-webp-2Mpixel).
    - Place the database file as `DB.db` and image tar files in `IMAGE_FOLDER/data-xxxx.tar`, where `DB` and `IMAGE_FOLDER` represent your chosen paths.
-
 2. **Initialization:**
+
    - Load the database and set up logging.
 
 ```python
@@ -86,6 +88,7 @@ load_db("DB")  # Replace "DB" with your database file path.
 
 3. **Select Posts:**
    - Query posts based on specific tags, ratings, and scores to filter content.
+   - In here we utilize the API provided by Peewee, refer to the [official documentations](https://docs.peewee-orm.com/en/latest/peewee/querying.html#selecting-multiple-records) for more information.
 
 ```python
 from hakubooru.dataset import get_post_by_tags, get_tag_by_name, Post
