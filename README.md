@@ -91,7 +91,8 @@ load_db("DB")  # Replace "DB" with your database file path.
    - In here we utilize the API provided by Peewee, refer to the [official documentations](https://docs.peewee-orm.com/en/latest/peewee/querying.html#selecting-multiple-records) for more information.
 
 ```python
-from hakubooru.dataset import get_post_by_tags, get_tag_by_name, Post
+from hakubooru.dataset import Post
+from hakubooru.dataset.utils import get_post_by_tags, get_tag_by_name
 
 logger.info("Querying posts")
 choosed_post = list(
