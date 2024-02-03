@@ -58,7 +58,7 @@ def make_caption(
     copyright_tag_list = tag_str_list(post.tag_list_copyright, tag_word_sep)
     artists_tag_list = tag_str_list(post.tag_list_artist, tag_word_sep)
     meta_tag_list = tag_str_list(
-        [tag for tag in post.tag_list if meta_tags_filter(tag)], tag_word_sep
+        [tag for tag in post.tag_list_meta if meta_tags_filter(tag)], tag_word_sep
     )
 
     keep_tags = (
