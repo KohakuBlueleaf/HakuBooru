@@ -84,9 +84,8 @@ class Exporter:
 
     def process_data(self, args):
         fail = success = False
-        data_id, data, post = args
+        data_id, content, ext, post = args
         try:
-            ext, content = list(data.items())[-1]
             if self.do_caption:
                 caption = self.captioner.caption(post, content)
             else:

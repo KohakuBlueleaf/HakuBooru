@@ -20,7 +20,12 @@ class BaseSource:
     def add_not_found(self, post: Post):
         self.not_found.append(post)
 
-    def read(self, choosed_posts: list[Post]) -> Iterable[dict[str, str | int | bytes]]:
+    def read(
+        self, choosed_posts: list[Post]
+    ) -> Iterable[tuple[int, bytes, str, Post]]:
+        '''
+        yield (data_id, data, ext, post)
+        '''
         raise NotImplementedError
 
 
@@ -46,7 +51,8 @@ class WdsSource(BaseSource):
         for data in iter(dataset):
             data_id = int(data["__key__"])
             if data_id in post_dict:
-                yield data_id, data, post_dict[data_id]
+                ext, content = list(data.items())[-1]
+                yield data_id, content, ext, post_dict[data_id]
                 post_dict.pop(data_id)
 
     def read(self, choosed_posts: list[Post]):
@@ -120,8 +126,8 @@ class TarSource(BaseSource):
                 data_id = int(data_id)
                 ext = ext.lstrip(".")
                 if data_id in post_dict:
-                    data = tarfile.extractfile(file).read()
-                    yield data_id, {"__key__": data_id, ext: data}, post_dict[data_id]
+                    content = tarfile.extractfile(file).read()
+                    yield data_id, content, ext, post_dict[data_id]
                     post_dict.pop(data_id)
 
     def read(self, choosed_posts: list[Post]):
