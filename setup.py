@@ -11,5 +11,9 @@ setup(
     author="Shih-Ying Yeh(KohakuBlueLeaf)",
     author_email="apolloyeh0123@gmail.com",
     zip_safe=False,
-    install_requires=["webdataset", "peewee"],
+    install_requires=[
+        "peewee",
+        "python-dateutil",
+        "webdataset",
+    ],
 )
