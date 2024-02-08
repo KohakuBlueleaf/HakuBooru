@@ -21,6 +21,8 @@ if __name__ == "__main__":
         source=TarSource("./images"),
         saver=FileSaver("./out/example"),
         captioner=KohakuCaptioner(),
+        process_batch_size=1000,
+        process_threads=8,
     )
 
     logger.info("Querying posts")
@@ -47,7 +49,7 @@ if __name__ == "__main__":
                     "skadi_(arknights)",
                 ]
             ]
-        ).where(Post.rating < 2, Post.score > 10)
+        ).where(Post.rating < 3, Post.score > 10)
     )
     logger.info(f"Found {len(choosed_post)} posts")
 
