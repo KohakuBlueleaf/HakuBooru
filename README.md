@@ -28,8 +28,6 @@ You are also encouraged to develop and integrate your own components to enhance 
 
 The combination of these features not only preserves the integrity of source platforms but also offers users an efficient and customizable tool for dataset creation.
 
-~~Thx ChatGPT4 for this introduction :p~~
-
 ## Resources
 
 * [danbooru2023-sqlite](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-sqlite)
@@ -126,3 +124,7 @@ exporter = Exporter(
 logger.info("Exporting images")
 exporter.export_posts(choosed_post)
 ```
+
+## Acknowledgement
+
+* GPT4: Refine this README.
