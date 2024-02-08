@@ -116,10 +116,11 @@ class TarSource(BaseSource):
 
         for tarfile in tarfiles:
             for file in tarfile.getmembers():
-                data_id = os.path.splitext(file.name)[0]
+                data_id, ext = os.path.splitext(file.name)
+                data_id = int(data_id)
                 if data_id in post_dict:
                     data = tarfile.extractfile(file).read()
-                    yield data_id, data, post_dict[data_id]
+                    yield data_id, {"__key__": data_id, ext: data}, post_dict[data_id]
                     post_dict.pop(data_id)
 
     def read(self, choosed_posts: list[Post]):
