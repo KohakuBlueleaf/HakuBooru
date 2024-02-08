@@ -57,6 +57,7 @@ This project simplifies the workflow for exporting images from tar files into de
 
 - **Post Chooser:** Selects relevant posts from a dataset.
   - Normally you only need peewee's api to query all the post you want.
+- **Source:** Reading images from disk or web.
 - **Captioner:** Generates captions for images based on the image itself or its metadata.
 - **Saver:** Saves the targeted data (image bytes, caption text, and ID) on disk. Includes two built-in savers:
   - **File Saver:** Saves images and captions into separate files with a shared base name.
@@ -113,10 +114,12 @@ logger.info(f"Found {len(choosed_post)} posts")
 ```python
 from hakubooru.export import Exporter, FileSaver
 from hakubooru.caption import KohakuCaptioner
+from hakubooru.source import TarSource
+
 
 logger.info("Building exporter")
 exporter = Exporter(
-    dataset_dir="IMAGE_FOLDER", 
+    source=TarSource("IMAGE_FOLDER"), 
     saver=FileSaver("./out/example"), 
     captioner=KohakuCaptioner()
 )
