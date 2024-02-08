@@ -1,13 +1,14 @@
 import logging
 
+from hakubooru.caption import KohakuCaptioner
 from hakubooru.dataset import load_db, Post
 from hakubooru.dataset.utils import (
     get_post_by_tags,
     get_tag_by_name,
 )
-from hakubooru.caption import KohakuCaptioner
 from hakubooru.export import Exporter, FileSaver
 from hakubooru.logging import logger
+from hakubooru.source import TarSource, WdsSource
 
 
 if __name__ == "__main__":
@@ -17,7 +18,7 @@ if __name__ == "__main__":
 
     logger.info("Build exporter")
     exporter = Exporter(
-        "./images",
+        source=TarSource("./images"),
         saver=FileSaver("./out/example"),
         captioner=KohakuCaptioner(),
     )
