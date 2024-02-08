@@ -70,9 +70,10 @@ class Exporter:
         saver: BaseSaver = FileSaver("./out"),
         captioner: BaseCaptioner | None = KohakuCaptioner(),
         process_batch_size=1000,
+        process_threads=16,
     ):
         # ThreadPool will speed up database query and saver
-        self.pool = ThreadPoolExecutor(16)
+        self.pool = ThreadPoolExecutor(process_threads)
 
         self.source = source
         self.saver = saver
