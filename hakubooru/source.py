@@ -20,12 +20,10 @@ class BaseSource:
     def add_not_found(self, post: Post):
         self.not_found.append(post)
 
-    def read(
-        self, choosed_posts: list[Post]
-    ) -> Iterable[tuple[int, bytes, str, Post]]:
-        '''
+    def read(self, choosed_posts: list[Post]) -> Iterable[tuple[int, bytes, str, Post]]:
+        """
         yield (data_id, data, ext, post)
-        '''
+        """
         raise NotImplementedError
 
 
