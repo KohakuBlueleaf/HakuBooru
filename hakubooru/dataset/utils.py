@@ -5,10 +5,14 @@ from .db import *
 
 def get_post_by_tags(tag: Tag | list[Tag]) -> ModelSelect:
     if isinstance(tag, Tag):
-        ids = [tag.id]
+        posts = tag.posts
     else:
-        ids = [tag.id for tag in tag]
-    return Post.select().join(PostTagRelation).join(Tag).where(Tag.id << ids)
+        posts = set()
+        for t in tag:
+            for post in t.posts:
+                posts.add(post)
+        posts = list(posts)
+    return posts
 
 
 def get_tag_by_name(name: str):

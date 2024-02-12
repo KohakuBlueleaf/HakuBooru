@@ -132,6 +132,9 @@ class Post(BaseModel):
     tag_count_copyright = IntegerField()
     tag_count_meta = IntegerField()
 
+    def __hash__(self):
+        return self.id
+
     @property
     def tag_list(self):
         if self._tags_cache is None:
