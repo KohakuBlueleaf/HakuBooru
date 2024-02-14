@@ -5,7 +5,7 @@ from hakubooru.dataset.db import (
 )
 from hakubooru.metainfo import (
     rating_map,
-    score_percentile_after_5m,
+    fav_count_percentile_full,
 )
 
 
@@ -46,13 +46,13 @@ def quality_tag(
     post: Post,
     keep_tags: list[str],
     general_tags: list[str],
-    percentile_map: dict[str, dict[int, int]] = score_percentile_after_5m,
+    percentile_map: dict[str, dict[int, int]] = fav_count_percentile_full,
 ) -> tuple[list[str], list[str]]:
-    if post.id > 6880000:
+    if post.id > 7000000:
         # Don't add quality tag for posts which are new.
         return keep_tags, general_tags
     rating = post.rating
-    score = post.score
+    score = post.fav_count
     percentile = percentile_map[rating]
 
     if score > percentile[95]:
