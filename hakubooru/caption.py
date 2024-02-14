@@ -83,7 +83,6 @@ def make_caption_from_id(
     processor=[year_tag, rating_tag, quality_tag],
 ) -> str:
     post = Post.get_by_id(post_id)
-    print(post.file_url)
     if post is None:
         raise Exception(f"Post with id {post_id} not found")
     return make_caption(post, tag_word_sep, tag_seperator, keep_seperator, processor)
