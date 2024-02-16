@@ -1,6 +1,4 @@
-# [WIP]HakuBooru - text-image dataset maker for booru style image platform
-
-**This repo is still WIP**
+# HakuBooru - text-image dataset maker for booru style image platform
 
 ## Introduction
 
