@@ -5,6 +5,7 @@ from typing import Iterable, Any
 
 import webdataset as wds
 from tqdm import tqdm
+from peewee import chunked
 
 from hakubooru.dataset import Post
 from hakubooru.logging import logger
@@ -172,3 +173,12 @@ class TarSource(BaseSource):
                 f"{len(bucket_not_found)} buckets are not used "
                 "because the bucket doesn't exist"
             )
+
+
+class FakeSource(BaseSource):
+    def __init__(self, dataset_dir: str):
+        super().__init__()
+
+    def read(self, choosed_posts: list[Post]):
+        for post in tqdm(choosed_posts, desc="reading posts"):
+            yield (post.id, b"", "", post)

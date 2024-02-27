@@ -1,5 +1,6 @@
 import os
 import re
+from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
 import webdataset as wds
@@ -63,6 +64,41 @@ class FileSaver(BaseSaver):
                 f.write(caption)
 
 
+class TextSaver(BaseSaver):
+    def __init__(
+        self, output_dir: str, caption_ext: str = "txt", one_file: bool = True
+    ):
+        super().__init__(output_dir, caption_ext)
+        self.one_file = one_file
+        if self.one_file:
+            self.cache = []
+            self.file_lock = Lock()
+            self.file = open(
+                os.path.join(self.output_dir, f"captions.{self.caption_ext}"), "w"
+            )
+
+    def __del__(self):
+        if self.one_file:
+            logger.info(f"Writing {len(self.cache)} captions")
+            self.file.write("\n".join(self.cache) + "\n")
+            self.file.close()
+
+    def __call__(self, img_id: int, img_data: bytes, img_ext: str, caption: str):
+        if self.one_file:
+            self.cache.append(caption)
+        else:
+            with open(
+                os.path.join(self.output_dir, f"{img_id}.{self.caption_ext}"), "w"
+            ) as f:
+                f.write(caption)
+
+
+class DummyPoolExecutor:
+    def map(self, func, args):
+        for arg in args:
+            yield func(arg)
+
+
 class Exporter:
     def __init__(
         self,
@@ -73,7 +109,10 @@ class Exporter:
         process_threads=16,
     ):
         # ThreadPool will speed up database query and saver
-        self.pool = ThreadPoolExecutor(process_threads)
+        if process_threads:
+            self.pool = ThreadPoolExecutor(process_threads)
+        else:
+            self.pool = DummyPoolExecutor()
 
         self.source = source
         self.saver = saver
@@ -114,6 +153,9 @@ class Exporter:
                 fail += f
 
         post_not_found = self.source.not_found
+
+        del self.saver
+        del self.source
 
         if post_not_found:
             logger.warning(
