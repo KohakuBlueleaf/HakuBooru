@@ -3,7 +3,7 @@ import logging
 from hakubooru.caption import KohakuCaptioner
 from hakubooru.dataset import load_db, Post
 from hakubooru.dataset.utils import (
-    get_post_by_tags,
+    select_post_by_tags,
     get_tag_by_name,
 )
 from hakubooru.export import Exporter, FileSaver
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # * whose rating < 3 (avoid explicit images)
     # * whose score > 10 (better preference)
     choosed_post = list(
-        get_post_by_tags(
+        select_post_by_tags(
             [
                 get_tag_by_name(tag)
                 for tag in [
