@@ -1,3 +1,7 @@
+"""
+Dataset exporter for DanTagGen
+"""
+
 import logging
 from concurrent.futures import *
 from json import dumps
@@ -15,6 +19,9 @@ def make_caption(
     post: Post,
     tag_word_sep: str = " ",
 ) -> str:
+    height = post.image_height
+    width = post.image_width
+    fav = post.fav_count
     special_tag_list, general_tag_list = extract_special_tags(post.tag_list_general)
     special_tag_list = tag_str_list(special_tag_list, tag_word_sep)
     general_tag_list = tag_str_list(general_tag_list, tag_word_sep)
@@ -29,7 +36,10 @@ def make_caption(
     _, rating_tags = rating_tag(post, [], [])
     _, quality_tags = quality_tag(post, [], [])
 
-    return {
+    data = {
+        "height": height,
+        "width": width,
+        "fav": fav,
         "special": special_tag_list,
         "general": general_tag_list,
         "character": character_tag_list,
@@ -40,6 +50,7 @@ def make_caption(
         "rating": rating_tags,
         "quality": quality_tags,
     }
+    return dumps(data, ensure_ascii=False)
 
 
 if __name__ == "__main__":
@@ -50,7 +61,7 @@ if __name__ == "__main__":
     logger.info("Build exporter")
 
     logger.info("Querying posts")
-    choosed_post = (
+    choosed_post: list[Post] = (
         list(
             Post.select().where(
                 Post.fav_count > fav_count_percentile_full["general"][75],
@@ -79,7 +90,7 @@ if __name__ == "__main__":
     logger.info(f"Found {len(choosed_post)} posts")
 
     captions = list(
-        dumps(make_caption(x))
+        make_caption(x)
         for x in tqdm(
             choosed_post, "make captions", total=len(choosed_post), smoothing=0.01
         )
