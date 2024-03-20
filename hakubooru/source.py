@@ -5,6 +5,7 @@ from typing import Iterable, Any
 
 import webdataset as wds
 from tqdm import tqdm
+from peewee import chunked
 
 from hakubooru.dataset import Post
 from hakubooru.logging import logger
@@ -46,9 +47,7 @@ class WdsSource(BaseSource):
             latest_folder = os.listdir(os.path.join(dataset_dir, "updates"))[-1]
             latest_updates_dir = os.path.join(dataset_dir, "updates", latest_folder)
             self.updates_tar = {
-                os.path.join(latest_updates_dir, f).replace("\\", "/"): [
-                    os.path.join(latest_updates_dir, f).replace("\\", "/")
-                ]
+                f: os.path.join(latest_updates_dir, f).replace("\\", "/")
                 for f in os.listdir(latest_updates_dir)
                 if f.endswith(".tar")
             }

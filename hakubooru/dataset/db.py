@@ -4,7 +4,9 @@ import warnings
 
 from peewee import *
 
-warnings.warn("Remember to update your db file to catch up latest changes!", DeprecationWarning)
+warnings.warn(
+    "Remember to update your db file to catch up latest changes!", DeprecationWarning
+)
 
 
 class MemoryConnection(sqlite3.Connection):
