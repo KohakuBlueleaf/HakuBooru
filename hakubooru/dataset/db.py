@@ -1,6 +1,10 @@
+import os
 import sqlite3
+import warnings
 
 from peewee import *
+
+warnings.warn("Remember to update your db file to catch up latest changes!", DeprecationWarning)
 
 
 class MemoryConnection(sqlite3.Connection):
@@ -39,10 +43,10 @@ db: SqliteDatabase = None
 tag_cache_map = {}
 
 
-def get_tag_by_id(id):
-    if id not in tag_cache_map:
-        tag_cache_map[id] = Tag.get_by_id(id)
-    return tag_cache_map[id]
+def get_tag_by_id(tag_id):
+    if tag_id not in tag_cache_map:
+        tag_cache_map[tag_id] = Tag.get_by_id(tag_id)
+    return tag_cache_map[tag_id]
 
 
 class EnumField(IntegerField):
@@ -85,8 +89,6 @@ class Tag(BaseModel):
         return f"<Tag '{self.name}'>"
 
     def __repr__(self):
-        from objprint import objstr
-
         return f"<Tag|#{self.id}|{self.name}|{self.type[:2]}>"
 
 
@@ -117,23 +119,36 @@ class Post(BaseModel):
     down_score = IntegerField()
     fav_count = IntegerField()
 
-    file_url = CharField()
-    large_file_url = CharField()
-    preview_file_url = CharField()
+    file_url = CharField(null=True)
+    large_file_url = CharField(null=True)
+    preview_file_url = CharField(null=True)
 
-    _tags: ManyToManyField
+    _tags: ManyToManyField = None  # set by tags.bind
     _tags_cache = None
-    _tag_list = TextField(column_name="tag_list")
 
-    tag_count = IntegerField()
-    tag_count_general = IntegerField()
-    tag_count_artist = IntegerField()
-    tag_count_character = IntegerField()
-    tag_count_copyright = IntegerField()
-    tag_count_meta = IntegerField()
+    @property
+    def tag_count(self):
+        return len(self.tag_list) if self.tag_list else 0
 
-    def __hash__(self):
-        return self.id
+    @property
+    def tag_count_general(self):
+        return len(self.tag_list_general) if self.tag_list else 0
+
+    @property
+    def tag_count_artist(self):
+        return len(self.tag_list_artist) if self.tag_list else 0
+
+    @property
+    def tag_count_character(self):
+        return len(self.tag_list_character) if self.tag_list else 0
+
+    @property
+    def tag_count_copyright(self):
+        return len(self.tag_list_copyright) if self.tag_list else 0
+
+    @property
+    def tag_count_meta(self):
+        return len(self.tag_list_meta) if self.tag_list else 0
 
     @property
     def tag_list(self):
@@ -162,6 +177,21 @@ class Post(BaseModel):
         return [tag for tag in self.tag_list if tag.type == "meta"]
 
 
+# create table LocalPost Table that can contain "filepath", "latentpath"
+class LocalPost(BaseModel):
+    # Usage : LocalPost.create(filepath="path/to/file", latentpath="path/to/latent", post=post)
+    id = IntegerField(primary_key=True)
+    filepath = CharField(null=True)
+    latentpath = CharField(null=True)
+    post = ForeignKeyField(Post, backref="localpost")
+
+    def __str__(self):
+        return f"<LocalPost '{self.filepath}'>"
+
+    def __repr__(self):
+        return f"<LocalPost|#{self.id}|{self.filepath}|{self.latentpath}|{self.post}>"
+
+
 class PostTagRelation(BaseModel):
     post = ForeignKeyField(Post, backref="post_tags")
     tag = ForeignKeyField(Tag, backref="tag_posts")
@@ -173,26 +203,66 @@ tags.bind(Post, "_tags", set_attribute=True)
 
 def load_db(db_file: str):
     global db
+    file_exists = os.path.exists(db_file)
     db = SqliteDatabase(db_file)
     Post._meta.database = db
     Tag._meta.database = db
     PostTagRelation._meta.database = db
+    LocalPost._meta.database = db
     db.connect()
+    print("Database connected.")
+    if not file_exists:
+        db.create_tables([Post, Tag, PostTagRelation])
+        db.create_tables([LocalPost])
+        db.commit()
+        print("Database initialized.")
+    assert db is not None, "Database is not loaded"
+    return db
+
+
+def print_post_info(post):
+    """
+    Debugging function to print out a post's tags
+    """
+    print(f"Post id : {post.id}")
+    print(
+        "General Tags: ",
+        post.tag_count_general,
+        len(post.tag_list_general),
+        post.tag_list_general,
+    )
+    print(
+        "Artist Tags: ",
+        post.tag_count_artist,
+        len(post.tag_list_artist),
+        post.tag_list_artist,
+    )
+    print(
+        "Character Tags: ",
+        post.tag_count_character,
+        len(post.tag_list_character),
+        post.tag_list_character,
+    )
+    print(
+        "Copyright Tags: ",
+        post.tag_count_copyright,
+        len(post.tag_list_copyright),
+        post.tag_list_copyright,
+    )
+    print(
+        "Meta Tags: ", post.tag_count_meta, len(post.tag_list_meta), post.tag_list_meta
+    )
 
 
 if __name__ == "__main__":
-    load_db("danbooru2023.db")
-    post = Post.get_by_id(1)
-    print(post.tag_count_general, len(post.tag_list_general), post.tag_list_general)
-    print(post.tag_count_artist, len(post.tag_list_artist), post.tag_list_artist)
-    print(
-        post.tag_count_character, len(post.tag_list_character), post.tag_list_character
-    )
-    print(
-        post.tag_count_copyright, len(post.tag_list_copyright), post.tag_list_copyright
-    )
-    print(post.tag_count_meta, len(post.tag_list_meta), post.tag_list_meta)
-
-    tag = Tag.select().where(Tag.name == "umamusume").first()
-    print(tag)
-    print(len(tag.posts))
+    db_existed = os.path.exists("danbooru2023.db")
+    db = load_db("danbooru2023.db")
+    if db_existed:
+        # run sanity check
+        post = Post.get_by_id(1)
+        print_post_info(post)
+        tag = Tag.select().where(Tag.name == "kousaka_kirino").get()
+        print(f"Tag {tag} has {len(tag.posts)} posts")
+        # get last post
+        post = Post.select().order_by(Post.id.desc()).limit(1).get()
+        print_post_info(post)
