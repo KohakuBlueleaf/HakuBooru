@@ -5,6 +5,7 @@ from hakubooru.metainfo import (
 from hakubooru.tag_generator import (
     rating_tag,
     quality_tag,
+    quality_tag_new,
     year_tag,
 )
 from hakubooru.dataset.db import (
@@ -21,16 +22,17 @@ def tag_str_list(tag_list: list[Tag], tag_word_sep: str) -> list[str]:
     ]
 
 
+def tags_filter(tag: Tag, black_list: list[str]) -> bool:
+    return not any(keyword in tag.name for keyword in black_list)
+
+
 def meta_tags_filter(tag: Tag) -> bool:
     if tag.type != "meta":
         return True
 
     # NOTE: we only filter out meta tags with these keywords
     # Which is definitely not related to the content of image
-    if any(keyword in tag.name for keyword in meta_keywords_black_list):
-        return False
-
-    return True
+    return tags_filter(tag, meta_keywords_black_list)
 
 
 def extract_special_tags(tag_list: list[Tag]) -> tuple[list[str], list[str]]:
@@ -56,7 +58,9 @@ def make_caption(
     general_tag_list = tag_str_list(general_tag_list, tag_word_sep)
     character_tag_list = tag_str_list(post.tag_list_character, tag_word_sep)
     copyright_tag_list = tag_str_list(post.tag_list_copyright, tag_word_sep)
-    artists_tag_list = tag_str_list(post.tag_list_artist, tag_word_sep)
+    artists_tag_list = tag_str_list(
+        [tag for tag in post.tag_list_artist if tags_filter(tag, ["banned"])], tag_word_sep
+    )
     meta_tag_list = tag_str_list(
         [tag for tag in post.tag_list_meta if meta_tags_filter(tag)], tag_word_sep
     )
@@ -99,7 +103,7 @@ class KohakuCaptioner(BaseCaptioner):
         tag_word_sep=" ",
         tag_seperator=", ",
         keep_seperator="|||",
-        processors=[year_tag, rating_tag, quality_tag],
+        processors=[year_tag, rating_tag, quality_tag_new],
     ):
         self.processors = processors
         self.tag_word_sep = tag_word_sep

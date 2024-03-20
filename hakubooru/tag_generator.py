@@ -73,3 +73,36 @@ def quality_tag(
     general_tags.append(quality_tag)
 
     return keep_tags, general_tags
+
+
+def quality_tag_new(
+    post: Post,
+    keep_tags: list[str],
+    general_tags: list[str],
+    percentile_map: dict[str, dict[int, int]] = fav_count_percentile_full,
+) -> tuple[list[str], list[str]]:
+    if post.id > 7100000:
+        # Don't add quality tag for posts which are new.
+        return keep_tags, general_tags
+    rating = post.rating
+    score = post.fav_count
+    percentile = percentile_map[rating]
+
+    if score > percentile[90]:
+        quality_tag = "masterpiece"
+    elif score > percentile[75]:
+        quality_tag = "best quality"
+    elif score > percentile[60]:
+        quality_tag = "great quality"
+    elif score > percentile[45]:
+        quality_tag = "good quality"
+    elif score > percentile[30]:
+        quality_tag = "normal quality"
+    elif score > percentile[10]:
+        quality_tag = "low quality"
+    else:
+        quality_tag = "worst quality"
+
+    general_tags.append(quality_tag)
+
+    return keep_tags, general_tags
