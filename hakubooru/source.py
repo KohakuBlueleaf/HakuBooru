@@ -57,7 +57,7 @@ class WdsSource(BaseSource):
         dataset = wds.WebDataset(tar_files)
 
         for data in iter(dataset):
-            data_id = int(data["__key__"])
+            data_id = int(data["__key__"].rsplit("/", 1)[-1])
             if data_id in post_dict:
                 ext, content = list(data.items())[-1]
                 yield data_id, content, ext, post_dict[data_id]
@@ -120,7 +120,7 @@ class TarSource(WdsSource):
         for tarfile in tarfiles:
             for file in tarfile.getmembers():
                 data_id, ext = os.path.splitext(file.name)
-                data_id = int(data_id)
+                data_id = int(data_id.rsplit("/", 1)[-1])
                 ext = ext.lstrip(".")
                 if data_id in post_dict:
                     content = tarfile.extractfile(file).read()
