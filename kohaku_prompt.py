@@ -3,6 +3,7 @@ Dataset exporter for DanTagGen
 """
 
 import logging
+import gc
 from concurrent.futures import *
 from json import dumps
 
@@ -15,13 +16,31 @@ from hakubooru.logging import logger
 from hakubooru.metainfo import fav_count_percentile_full
 
 
+def calc_quality_tag(score, rating):
+    percentile = fav_count_percentile_full[rating]
+    if score > percentile[90]:
+        quality_tag = "masterpiece"
+    elif score > percentile[75]:
+        quality_tag = "best quality"
+    elif score > percentile[60]:
+        quality_tag = "great quality"
+    elif score > percentile[45]:
+        quality_tag = "good quality"
+    elif score > percentile[30]:
+        quality_tag = "normal quality"
+    elif score > percentile[10]:
+        quality_tag = "low quality"
+    else:
+        quality_tag = "worst quality"
+    return quality_tag
+
+
 def make_caption(
     post: Post,
     tag_word_sep: str = " ",
 ) -> str:
     height = post.image_height
     width = post.image_width
-    fav = post.fav_count
     special_tag_list, general_tag_list = extract_special_tags(post.tag_list_general)
     special_tag_list = tag_str_list(special_tag_list, tag_word_sep)
     general_tag_list = tag_str_list(general_tag_list, tag_word_sep)
@@ -39,7 +58,8 @@ def make_caption(
     data = {
         "height": height,
         "width": width,
-        "fav": fav,
+        "fav": post.fav_count,
+        "quality": calc_quality_tag(getattr(post, "fav_count", -100), post.rating),
         "special": special_tag_list,
         "general": general_tag_list,
         "character": character_tag_list,
@@ -50,7 +70,13 @@ def make_caption(
         "rating": rating_tags,
         "quality": quality_tags,
     }
-    return dumps(data, ensure_ascii=False)
+    for tag in post.tag_list:
+        del tag
+    del post._tags_cache
+    del post
+    result = dumps(data, ensure_ascii=False)
+    del data
+    return result
 
 
 if __name__ == "__main__":
@@ -61,32 +87,8 @@ if __name__ == "__main__":
     logger.info("Build exporter")
 
     logger.info("Querying posts")
-    choosed_post: list[Post] = (
-        list(
-            Post.select().where(
-                Post.fav_count > fav_count_percentile_full["general"][75],
-                Post.rating == 0,
-            )
-        )
-        + list(
-            Post.select().where(
-                Post.fav_count > fav_count_percentile_full["sensitive"][75],
-                Post.rating == 1,
-            )
-        )
-        + list(
-            Post.select().where(
-                Post.fav_count > fav_count_percentile_full["questionable"][75],
-                Post.rating == 2,
-            )
-        )
-        + list(
-            Post.select().where(
-                Post.fav_count > fav_count_percentile_full["sensitive"][75],
-                Post.rating == 3,
-            )
-        )
-    )
+    choosed_post: list[Post] = list(Post.select())
+    choosed_post = sorted(set(choosed_post), key=lambda x: x.id)
     logger.info(f"Found {len(choosed_post)} posts")
 
     captions = list(
@@ -95,5 +97,5 @@ if __name__ == "__main__":
             choosed_post, "make captions", total=len(choosed_post), smoothing=0.01
         )
     )
-    with open("./out/captions.jsonl", "w") as f:
+    with open("./out/captions-full.jsonl", "w") as f:
         f.write("\n".join(captions) + "\n")
