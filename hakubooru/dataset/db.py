@@ -5,7 +5,8 @@ import warnings
 from peewee import *
 
 warnings.warn(
-    "Remember to update your db file to catch up latest changes!", DeprecationWarning
+    "Remember to update your db file to catch up latest changes!",
+    DeprecationWarning,
 )
 
 
@@ -127,6 +128,9 @@ class Post(BaseModel):
 
     _tags: ManyToManyField = None  # set by tags.bind
     _tags_cache = None
+
+    def __hash__(self):
+        return self.id
 
     @property
     def tag_count(self):
