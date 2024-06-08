@@ -1,13 +1,7 @@
 import os
 import sqlite3
-import warnings
 
 from peewee import *
-
-warnings.warn(
-    "Remember to update your db file to catch up latest changes!",
-    DeprecationWarning,
-)
 
 
 class MemoryConnection(sqlite3.Connection):
@@ -125,6 +119,8 @@ class Post(BaseModel):
     file_url = CharField(null=True)
     large_file_url = CharField(null=True)
     preview_file_url = CharField(null=True)
+
+    updated_at = CharField()  # "updated_at": "2024-05-19T01:30:25.096-04:00"
 
     _tags: ManyToManyField = None  # set by tags.bind
     _tags_cache = None
