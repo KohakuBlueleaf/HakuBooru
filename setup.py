@@ -16,4 +16,7 @@ setup(
         "python-dateutil",
         "webdataset",
     ],
+    extra_require={
+        "gui": ["gradio"],
+    },
 )
