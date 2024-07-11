@@ -1,3 +1,4 @@
 peewee
 webdataset
 python-dateutil
+gradio
