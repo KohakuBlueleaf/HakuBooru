@@ -12,6 +12,7 @@ def gradio_interface(
     output_path,
     id_range_min,
     id_range_max,
+    add_character_category_path,
 ):
     names_list = [name.strip() for name in names.split(",")]
     required_list = [req.strip() for req in required.split(",")]
@@ -32,6 +33,7 @@ def gradio_interface(
         output_path,
         id_min,
         id_max,
+        add_character_category_path,
     )
     return log_contents
 
@@ -47,8 +49,13 @@ iface = gr.Interface(
             lines=1,
             placeholder="Enter required tags separated by commas,such as: solo,highres",
         ),  # 必要的标签
-        gr.Number(value=200, label="Enter max number"),  # 最大数量
-        gr.Textbox(value="0,1,2", label="Enter rating number(0~3)"),  # 评分，越小越安全
+        gr.Number(
+            value="-1", label="Enter images max number,-1 means no limit"
+        ),  # 最大数量
+        gr.Textbox(
+            value="0,1,2,3",
+            label="Enter rating number(0~3), 0 means safe, 3 means nsfw",
+        ),  # 评分，越小越安全
         gr.Textbox(
             lines=1, value="./data/danbooru2023.db", placeholder="Enter database path"
         ),  # 数据库路径
@@ -60,6 +67,9 @@ iface = gr.Interface(
         ),  # 输出路径
         gr.Number(value="0", label="Enter id min range"),  # id范围
         gr.Number(value="8000000", label="Enter id max range"),  # id范围
+        gr.Checkbox(
+            label="add_character_category_path"
+        ),  # 是否根据names中的名称单独新建文件夹
     ],
     outputs="text",  # 输出为文本，显示结果
 )

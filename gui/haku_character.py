@@ -27,6 +27,7 @@ def haku_character(
     output_path,
     id_range_min,
     id_range_max,
+    add_character_category_path,
 ):
     log_stream = StringIO()
     stream_handler = logging.StreamHandler(log_stream)
@@ -50,35 +51,13 @@ def haku_character(
 
         choosed_post_characters = select_post_by_tags(target_characters)
         choosed_post_required = select_post_by_required_tags(required_tags)
-        choosed_post = choosed_post_required.where(
-            Post.id << choosed_post_characters
-        ).where(Post.id > id_range_min, Post.id < id_range_max)
-        choosed_post = list(choosed_post)
 
-        if len(choosed_post) < max:
-            rp = max / len(choosed_post)
-            rp = round(rp)
+        rp = 1
+        clean_name = re.sub(r"[^\w\s]", "", name)
+        path = ""
 
-            logger.info(f"Found {len(choosed_post_characters)} posts for characters")
-            logger.info(f"Found {len(choosed_post_required)} posts for required tags")
-            logger.info(f"Found {len(choosed_post)} posts")
-
-            logger.info("Build exporter")
-            clean_name = re.sub(r"[^\w\s]", "", name)
-            exporter = Exporter(
-                source=TarSource(image_path),
-                saver=FileSaver(
-                    "{output_path}/{clean_name}/{rp}_data".format(
-                        output_path=output_path, clean_name=clean_name, rp=rp
-                    )
-                ),
-                captioner=KohakuCaptioner(),
-                process_batch_size=250,
-                process_threads=4,
-            )
-
-            exporter.export_posts(choosed_post)
-            continue
+        if max == -1:
+            max = float("inf")
 
         x = 100
 
@@ -99,7 +78,14 @@ def haku_character(
 
             x -= 10
 
-        if len(choosed_post) >= max:
+        if len(choosed_post) < max and max != float("inf"):
+            rp = max / len(choosed_post)
+            rp = round(rp)
+
+        if add_character_category_path:
+            path = "{clean_name}/{rp}_data".format(clean_name=clean_name, rp=rp)
+
+        if len(choosed_post) >= max and max != float("inf"):
             choosed_post = random.sample(choosed_post, max)
 
         logger.info(f"Found {len(choosed_post_characters)} posts for characters")
@@ -107,13 +93,11 @@ def haku_character(
         logger.info(f"Found {len(choosed_post)} posts")
 
         logger.info("Build exporter")
-        clean_name = re.sub(r"[^\w\s]", "", name)
+
         exporter = Exporter(
             source=TarSource(image_path),
             saver=FileSaver(
-                "{output_path}/{clean_name}/1_data".format(
-                    output_path=output_path, clean_name=clean_name
-                )
+                "{output_path}/{path}".format(output_path=output_path, path=path),
             ),
             captioner=KohakuCaptioner(),
             process_batch_size=250,
@@ -139,6 +123,7 @@ if __name__ == "__main__":
     output_path = "./train_data"
     id_range_min = 5000000
     id_range_max = 8000000
+    add_character_category_path = True
     print(
         haku_character(
             names,
@@ -150,5 +135,6 @@ if __name__ == "__main__":
             output_path,
             id_range_min,
             id_range_max,
+            add_character_category_path,
         )
     )
