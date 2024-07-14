@@ -136,6 +136,7 @@ class Exporter:
                 ext,
                 caption,
             )
+            del post._tags_cache
         except Exception as e:
             logger.warning(
                 f"Error occured when doing captioning and saving {data_id}: {e}"

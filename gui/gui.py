@@ -18,9 +18,6 @@ def gradio_interface(
     required_list = [req.strip() for req in required.split(",")]
     max_image = int(max)
     ratings_list = [int(r.strip()) for r in ratings.split(",")]
-    db_path = "./data/danbooru2023.db"
-    image_path = "./images"
-    output_path = "./train_data"
     id_min = int(id_range_min)
     id_max = int(id_range_max)
     log_contents = haku_character(

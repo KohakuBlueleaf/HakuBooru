@@ -38,7 +38,7 @@ def select_post_by_required_tags(tag: Tag | list[Tag]) -> ModelSelect:
     )
 
 
-def get_tag_by_name(name: str):
+def get_tag_by_name(name: str) -> Tag:
     return Tag.get(Tag.name == name)
 
 
