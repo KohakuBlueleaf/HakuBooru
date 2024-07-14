@@ -1,5 +1,10 @@
 *.db
 *.tar
+*.sh
+*.json
+*.jsonl
+*.txt
+*.parquet
 /out
 
 
