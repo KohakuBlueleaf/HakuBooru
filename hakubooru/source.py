@@ -44,13 +44,12 @@ class WdsSource(BaseSource):
         }
         self.updates_tar = {}
         if os.path.isdir(os.path.join(dataset_dir, "updates")):
-            latest_folder = os.listdir(os.path.join(dataset_dir, "updates"))[-1]
-            latest_updates_dir = os.path.join(dataset_dir, "updates", latest_folder)
-            self.updates_tar = {
-                f: os.path.join(latest_updates_dir, f).replace("\\", "/")
-                for f in os.listdir(latest_updates_dir)
-                if f.endswith(".tar")
-            }
+            for dir in os.listdir(os.path.join(dataset_dir, "updates")):
+                updates_dir = os.path.join(dataset_dir, "updates", dir)
+                for file in os.listdir(updates_dir):
+                    updates_file = os.path.join(updates_dir, file).replace("\\", "/")
+                    if file.endswith(".tar"):
+                        self.updates_tar[updates_file] = updates_file
         assert len(self.existed_tar), "Dataset is empty"
 
     def _read(self, tar_files: list[str], post_dict: dict[str, Any]):
