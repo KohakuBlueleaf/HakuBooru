@@ -76,17 +76,22 @@ class WdsSource(BaseSource):
         id_map = {k: id_map[k] for k in sorted(id_map)}
 
         bucket_not_found = set()
-        for bucket_id, post_dict in tqdm(
+        for base_bucket_id, post_dict in tqdm(
             id_map.items(), desc="reading buckets", smoothing=0.1
         ):
-            if bucket_id not in existed_tar and bucket_id + 1000 not in existed_tar:
+            all_bucket_id = [
+                base_bucket_id + offset for offset in range(1000, 10000, 1000)
+            ]
+            if all(bucket_id not in existed_tar for bucket_id in all_bucket_id):
                 bucket_not_found.add(bucket_id)
                 continue
 
+            all_files = sum(
+                [existed_tar.get(bucket_id, []) for bucket_id in all_bucket_id], []
+            )
             yield from list(
                 self._read(
-                    existed_tar.get(bucket_id, [])
-                    + existed_tar.get(bucket_id + 1000, []),
+                    all_files,
                     post_dict,
                 )
             )
@@ -94,10 +99,6 @@ class WdsSource(BaseSource):
         remains = {}
         for _, post_dict in id_map.items():
             remains.update(post_dict)
-
-        # Check addon dataset if needed
-        if remains and 2000 in existed_tar:
-            yield from list(self._read(existed_tar[2000], remains))
 
         # Check updates folder if neede
         if remains and self.updates_tar:
