@@ -257,8 +257,8 @@ def print_post_info(post):
 
 
 if __name__ == "__main__":
-    db_existed = os.path.exists("danbooru2023.db")
-    db = load_db("danbooru2023.db")
+    db_existed = os.path.exists("./data/danbooru2023.db")
+    db = load_db("./data/danbooru2023.db")
     if db_existed:
         # run sanity check
         post = Post.get_by_id(1)
@@ -268,3 +268,18 @@ if __name__ == "__main__":
         # get last post
         post = Post.select().order_by(Post.id.desc()).limit(1).get()
         print_post_info(post)
+
+        from tqdm import tqdm
+        import duckdb
+
+        con = duckdb.connect("./data/danbooru2023.duckdb")
+        query = (
+            "SELECT DISTINCT tag_id, COUNT(*) "
+            "OVER (PARTITION BY tag_id) as count "
+            "FROM posttagrelation;"
+        )
+        with db.atomic():
+            for tag_id, count in tqdm(con.execute(query).fetchall()):
+                tag = Tag.get_by_id(tag_id)
+                tag.popularity = count
+                tag.save()
