@@ -5,6 +5,7 @@
 *.jsonl
 *.txt
 *.parquet
+*.duckdb
 /out
 
 

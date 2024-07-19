@@ -89,11 +89,11 @@ load_db("DB")  # Replace "DB" with your database file path.
 
 ```python
 from hakubooru.dataset import Post
-from hakubooru.dataset.utils import get_post_by_tags, get_tag_by_name
+from hakubooru.dataset.utils import select_post_by_tags, get_tag_by_name
 
 logger.info("Querying posts")
 choosed_post = list(
-    get_post_by_tags([
+    select_post_by_tags([
         get_tag_by_name(tag) 
         for tag in [
             "rice_shower_(umamusume)", 
