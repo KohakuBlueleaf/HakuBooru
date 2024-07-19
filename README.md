@@ -66,8 +66,8 @@ To effectively utilize this project, follow these steps:
 
 1. **Preparation:**
 
-   - Download the metadata database from [Hugging Face - danbooru2023.db](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-sqlite/blob/main/danbooru2023.db).
-   - Download the image tar files from [Hugging Face - danbooru2023-webp-2Mpixel](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-webp-2Mpixel).
+   - Download the metadata database from [Hugging Face - danbooru2023.db](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-metadata-database/blob/main/danbooru2023.db).
+   - Download the image tar files from [Hugging Face - danbooru2023-webp-4Mpixel](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-webp-4Mpixel).
    - Place the database file as `DB.db` and image tar files in `IMAGE_FOLDER/data-xxxx.tar`, where `DB` and `IMAGE_FOLDER` represent your chosen paths.
 2. **Initialization:**
 
