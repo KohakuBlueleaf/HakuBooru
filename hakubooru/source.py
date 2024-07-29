@@ -79,7 +79,7 @@ class WdsSource(BaseSource):
             id_map.items(), desc="reading buckets", smoothing=0.1
         ):
             all_bucket_id = [
-                base_bucket_id + offset for offset in range(1000, 10000, 1000)
+                base_bucket_id + offset for offset in range(0, 10000, 1000)
             ]
             if all(bucket_id not in existed_tar for bucket_id in all_bucket_id):
                 bucket_not_found.add(base_bucket_id)
