@@ -81,7 +81,7 @@ def quality_tag_new(
     general_tags: list[str],
     percentile_map: dict[str, dict[int, int]] = fav_count_percentile_full,
 ) -> tuple[list[str], list[str]]:
-    if post.id > 7100000:
+    if post.id > 7500000:
         # Don't add quality tag for posts which are new.
         return keep_tags, general_tags
     rating = post.rating

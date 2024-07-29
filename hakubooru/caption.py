@@ -1,3 +1,5 @@
+from random import shuffle
+
 from hakubooru.metainfo import (
     meta_keywords_black_list,
     special_tags,
@@ -48,23 +50,35 @@ def extract_special_tags(tag_list: list[Tag]) -> tuple[list[str], list[str]]:
 
 def make_caption(
     post: Post,
+    shuffle_each: bool = False,
     tag_word_sep: str = " ",
     tag_seperator: str = ", ",
     keep_seperator: str = "|||",
     processor=[year_tag, rating_tag, quality_tag],
 ) -> str:
     special_tag_list, general_tag_list = extract_special_tags(post.tag_list_general)
+    character_tag_list = post.tag_list_character
+    copyright_tag_list = post.tag_list_copyright
+    artists_tag_list = post.tag_list_artist
+    meta_tag_list = [tag for tag in post.tag_list_meta if meta_tags_filter(tag)]
+
+    if shuffle_each:
+        shuffle(special_tag_list)
+        shuffle(general_tag_list)
+        shuffle(character_tag_list)
+        shuffle(copyright_tag_list)
+        shuffle(artists_tag_list)
+        shuffle(meta_tag_list)
+
     special_tag_list = tag_str_list(special_tag_list, tag_word_sep)
     general_tag_list = tag_str_list(general_tag_list, tag_word_sep)
-    character_tag_list = tag_str_list(post.tag_list_character, tag_word_sep)
-    copyright_tag_list = tag_str_list(post.tag_list_copyright, tag_word_sep)
+    character_tag_list = tag_str_list(character_tag_list, tag_word_sep)
+    copyright_tag_list = tag_str_list(copyright_tag_list, tag_word_sep)
     artists_tag_list = tag_str_list(
-        [tag for tag in post.tag_list_artist if tags_filter(tag, ["banned"])],
+        [tag for tag in artists_tag_list if tags_filter(tag, ["banned"])],
         tag_word_sep,
     )
-    meta_tag_list = tag_str_list(
-        [tag for tag in post.tag_list_meta if meta_tags_filter(tag)], tag_word_sep
-    )
+    meta_tag_list = tag_str_list(meta_tag_list)
 
     keep_tags = (
         special_tag_list + character_tag_list + copyright_tag_list + artists_tag_list
@@ -101,11 +115,13 @@ class BaseCaptioner:
 class KohakuCaptioner(BaseCaptioner):
     def __init__(
         self,
+        shuffle_each=False,
         tag_word_sep=" ",
         tag_seperator=", ",
         keep_seperator="|||",
         processors=[year_tag, rating_tag, quality_tag_new],
     ):
+        self.shuffle_each = shuffle_each
         self.processors = processors
         self.tag_word_sep = tag_word_sep
         self.tag_seperator = tag_seperator
@@ -114,6 +130,7 @@ class KohakuCaptioner(BaseCaptioner):
     def caption(self, post: Post, img: bytes) -> str:
         return make_caption(
             post,
+            self.shuffle_each,
             self.tag_word_sep,
             self.tag_seperator,
             self.keep_seperator,
