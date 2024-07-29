@@ -78,7 +78,7 @@ def make_caption(
         [tag for tag in artists_tag_list if tags_filter(tag, ["banned"])],
         tag_word_sep,
     )
-    meta_tag_list = tag_str_list(meta_tag_list)
+    meta_tag_list = tag_str_list(meta_tag_list, tag_word_sep)
 
     keep_tags = (
         special_tag_list + character_tag_list + copyright_tag_list + artists_tag_list
