@@ -22,6 +22,7 @@ def haku_character(
     required,
     max,
     ratings,
+    score,
     db_path,
     image_path,
     output_path,
@@ -39,58 +40,102 @@ def haku_character(
 
     logger.info("Querying posts")
 
-    required_tags = [get_tag_by_name(tag) for tag in required]
+    if required:
+        required_tags = [get_tag_by_name(tag) for tag in required]
+    else:
+        required_tags = []
 
-    for name in names:
-        target_characters = [
-            get_tag_by_name(tag)
-            for tag in [
-                "{name}".format(name=name),
+    if names:
+        for name in names:
+            target_characters = [
+                get_tag_by_name(tag)
+                for tag in [
+                    "{name}".format(name=name),
+                ]
             ]
-        ]
 
-        choosed_post_characters = select_post_by_tags(target_characters)
-        choosed_post_required = select_post_by_required_tags(required_tags)
+            choosed_post_characters = select_post_by_tags(target_characters)
+            choosed_post_required = select_post_by_required_tags(required_tags)
 
-        rp = 1
-        clean_name = re.sub(r"[^\w\s]", "", name)
-        path = ""
+            rp = 1
+            clean_name = re.sub(r"[^\w\s]", "", name)
+            path = ""
+
+            if max == -1:
+                max = float("inf")
+
+            if score != -1:
+                choosed_post = (
+                    choosed_post_required.where(Post.id << choosed_post_characters)
+                    .where(Post.id >= id_range_min, Post.id <= id_range_max)
+                    .where(Post.score >= score)
+                    .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
+                )
+                choosed_post = list(choosed_post)
+            else:
+                x = 100
+
+                while True:
+                    choosed_post = (
+                        choosed_post_required.where(Post.id << choosed_post_characters)
+                        .where(Post.id >= id_range_min, Post.id <= id_range_max)
+                        .where(Post.score >= x)
+                        .where(
+                            reduce(operator.or_, (Post.rating == r for r in ratings))
+                        )
+                    )
+                    choosed_post = list(choosed_post)
+
+                    if len(choosed_post) >= max:
+                        break
+
+                    if x < 0:
+                        break
+
+                    x -= 10
+
+            if len(choosed_post) < max and max != float("inf"):
+                rp = max / len(choosed_post)
+                rp = round(rp)
+
+            if add_character_category_path:
+                path = "{clean_name}/{rp}_data".format(clean_name=clean_name, rp=rp)
+
+            if len(choosed_post) >= max and max != float("inf"):
+                choosed_post = random.sample(choosed_post, max)
+
+            logger.info(f"Found {len(choosed_post_characters)} posts for characters")
+            logger.info(f"Found {len(choosed_post_required)} posts for required tags")
+            logger.info(f"Found {len(choosed_post)} posts")
+
+            logger.info("Build exporter")
+
+            exporter = Exporter(
+                source=TarSource(image_path),
+                saver=FileSaver(
+                    "{output_path}/{path}".format(output_path=output_path, path=path),
+                ),
+                captioner=KohakuCaptioner(),
+                process_batch_size=250,
+                process_threads=4,
+            )
+
+            exporter.export_posts(choosed_post)
+    else:
+        choosed_post = list(
+            Post.select()
+            .where(Post.id >= id_range_min, Post.id <= id_range_max)
+            .where(Post.score >= score)
+            .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
+        )
+
+        logger.info(f"Found {len(choosed_post)} posts")
 
         if max == -1:
             max = float("inf")
 
-        x = 100
-
-        while True:
-            choosed_post = (
-                choosed_post_required.where(Post.id << choosed_post_characters)
-                .where(Post.id > id_range_min, Post.id < id_range_max)
-                .where(Post.score >= x)
-                .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
-            )
-            choosed_post = list(choosed_post)
-
-            if len(choosed_post) >= max:
-                break
-
-            if x < 0:
-                break
-
-            x -= 10
-
-        if len(choosed_post) < max and max != float("inf"):
-            rp = max / len(choosed_post)
-            rp = round(rp)
-
-        if add_character_category_path:
-            path = "{clean_name}/{rp}_data".format(clean_name=clean_name, rp=rp)
-
         if len(choosed_post) >= max and max != float("inf"):
             choosed_post = random.sample(choosed_post, max)
-
-        logger.info(f"Found {len(choosed_post_characters)} posts for characters")
-        logger.info(f"Found {len(choosed_post_required)} posts for required tags")
-        logger.info(f"Found {len(choosed_post)} posts")
 
         logger.info("Build exporter")
 
@@ -114,10 +159,12 @@ def haku_character(
 
 
 if __name__ == "__main__":
-    names = ["kamisato_ayaka"]
-    required = ["solo", "highres", "genshin_impact"]
+    # test
+    names = []
+    required = []
     max = 200
     ratings = [0, 1, 2]
+    score = 10
     db_path = "./data/danbooru2023.db"
     image_path = "./images"
     output_path = "./train_data"
@@ -130,6 +177,7 @@ if __name__ == "__main__":
             required,
             max,
             ratings,
+            score,
             db_path,
             image_path,
             output_path,
