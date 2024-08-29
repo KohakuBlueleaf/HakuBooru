@@ -39,19 +39,20 @@ def gradio_haku(
 
 
 with gr.Blocks() as blocks:
+    gr.Markdown("## [HakuBooru](https://github.com/KohakuBlueleaf/HakuBooru) GUI Beta version")
     with gr.Row():
         with gr.Column(scale=1):
             names = gr.Textbox(
                 lines=5,
-                value="kamisato_ayaka,seele_vollerei",
+                # value="kamisato_ayaka,seele_vollerei",
                 info="Enter tags separated by commas, such as: kamisato_ayaka,seele_vollerei",
-                label="Tags",
-            )  # 名字列表
+                label="Tags (Not mandatory)",
+            )  # tag列表
             required = gr.Textbox(
                 lines=1,
-                value="solo,highres",
+                # value="solo,highres",
                 info="Enter required tags separated by commas, such as: solo,highres",
-                label="else required tags",
+                label="else required tags(Not mandatory; this field is only available if 'Tags' is filled in.)",
             )  # 必要的标签
             max = gr.Number(
                 value="-1",
