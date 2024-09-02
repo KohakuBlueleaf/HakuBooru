@@ -14,6 +14,7 @@ def gradio_haku(
     id_range_min,
     id_range_max,
     add_character_category_path,
+    export_images,
 ):
     names_list = [name.strip() for name in (names.split(",") if names else [])]
     required_list = [req.strip() for req in (required.split(",") if required else [])]
@@ -34,12 +35,15 @@ def gradio_haku(
         id_min,
         id_max,
         add_character_category_path,
+        export_images,
     )
     return log_contents
 
 
 with gr.Blocks() as blocks:
-    gr.Markdown("## [HakuBooru](https://github.com/KohakuBlueleaf/HakuBooru) GUI Beta version")
+    gr.Markdown(
+        "## [HakuBooru](https://github.com/KohakuBlueleaf/HakuBooru) GUI Beta version"
+    )
     with gr.Row():
         with gr.Column(scale=1):
             names = gr.Textbox(
@@ -102,6 +106,10 @@ with gr.Blocks() as blocks:
                 info="When enabled, folders will be automatically categorized based on the tags.",
                 label="Add tag category path",
             )  # 是否根据tags中的名称单独新建文件夹
+            export_images = gr.Checkbox(
+                info="When enabled, images will be exported to the output path.",
+                label="Export images",
+            )  # 是否导出图片
     with gr.Row():
         run_button = gr.Button("Start")
     with gr.Row():
@@ -121,6 +129,7 @@ with gr.Blocks() as blocks:
             id_range_min,
             id_range_max,
             add_character_category_path,
+            export_images,
         ],
         outputs=output_log,
     )
