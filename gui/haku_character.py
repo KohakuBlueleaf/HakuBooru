@@ -11,6 +11,7 @@ from hakubooru.dataset.utils import (
     select_post_by_tags,
     select_post_by_required_tags,
     get_tag_by_name,
+    select_post_by_excluded_tags,
 )
 from hakubooru.export import Exporter, FileSaver
 from hakubooru.logging import logger
@@ -20,6 +21,7 @@ from hakubooru.source import TarSource
 def haku_character(
     names,
     required,
+    exclude,
     max,
     ratings,
     score,
@@ -46,6 +48,14 @@ def haku_character(
     else:
         required_tags = []
 
+    if exclude:
+        exclude_tags = [get_tag_by_name(tag) for tag in exclude]
+    else:
+        exclude_tags = []
+
+    choosed_post_exclude = select_post_by_excluded_tags(exclude_tags)
+    logger.info(f"Found {len(choosed_post_exclude)} posts for exclude tags")
+
     rp = 1
     path = ""
 
@@ -59,7 +69,9 @@ def haku_character(
             ]
 
             choosed_post_characters = select_post_by_tags(target_characters)
+            logger.info(f"Found {len(choosed_post_characters)} posts for {name}")
             choosed_post_required = select_post_by_required_tags(required_tags)
+            logger.info(f"Found {len(choosed_post_required)} posts for required tags")
 
             clean_name = re.sub(r"[^\w\s]", "", name)
 
@@ -86,6 +98,8 @@ def haku_character(
                             reduce(operator.or_, (Post.rating == r for r in ratings))
                         )
                     )
+                if exclude:
+                    choosed_post = choosed_post.where(Post.id << choosed_post_exclude)
                 choosed_post = list(choosed_post)
             else:
                 x = 100
@@ -116,6 +130,10 @@ def haku_character(
                                 )
                             )
                         )
+                    if exclude:
+                        choosed_post = choosed_post.where(
+                            Post.id << choosed_post_exclude
+                        )
                     choosed_post = list(choosed_post)
 
                     if len(choosed_post) >= max:
@@ -136,8 +154,6 @@ def haku_character(
             if len(choosed_post) >= max and max != float("inf"):
                 choosed_post = random.sample(choosed_post, max)
 
-            logger.info(f"Found {len(choosed_post_characters)} posts for {name}")
-            logger.info(f"Found {len(choosed_post_required)} posts for required tags")
             logger.info(f"Found {len(choosed_post)} posts")
 
             if export_images:
@@ -196,22 +212,24 @@ def haku_character(
 
 if __name__ == "__main__":
     # test
-    names = []
+    names = ["kamisato_ayaka"]
     required = []
-    max = 200
-    ratings = [0, 1, 2]
-    score = 10
+    exclude_tags = ["kamisato_ayaka"]
+    max = -1
+    ratings = [0, 1, 2, 3]
+    score = -1
     db_path = "./data/danbooru2023.db"
     image_path = "./images"
     output_path = "./train_data"
-    id_range_min = 5000000
-    id_range_max = 8000000
+    id_range_min = 0
+    id_range_max = 10000000
     add_character_category_path = True
-    export_images = True
+    export_images = False
     print(
         haku_character(
             names,
             required,
+            exclude_tags,
             max,
             ratings,
             score,

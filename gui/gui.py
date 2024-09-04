@@ -5,6 +5,7 @@ from haku_character import haku_character
 def gradio_haku(
     names,
     required,
+    exclude,
     max,
     ratings,
     score,
@@ -18,6 +19,7 @@ def gradio_haku(
 ):
     names_list = [name.strip() for name in (names.split(",") if names else [])]
     required_list = [req.strip() for req in (required.split(",") if required else [])]
+    exclude_tags = [exc.strip() for exc in (exclude.split(",") if exclude else [])]
     max_image = int(max)
     ratings_list = [int(r.strip()) for r in ratings.split(",")]
     score = int(score)
@@ -26,6 +28,7 @@ def gradio_haku(
     log_contents = haku_character(
         names_list,
         required_list,
+        exclude_tags,
         max_image,
         ratings_list,
         score,
@@ -58,6 +61,13 @@ with gr.Blocks() as blocks:
                 info="Enter required tags separated by commas, such as: solo,highres",
                 label="else required tags(Not mandatory; this field is only available if 'Tags' is filled in.)",
             )  # 必要的标签
+            exclude = gr.Textbox(
+                lines=1,
+                # value="lowres",
+                info="Enter exclude tags separated by commas, such as: lowres",
+                label="exclude tags(Not mandatory)",
+            )  # 排除的标签
+        with gr.Column(scale=1):
             max = gr.Number(
                 value="-1",
                 info="Enter images max number, -1 means no limit",
@@ -73,7 +83,7 @@ with gr.Blocks() as blocks:
                 info="Enter score threshold, -1 means automatically from top to bottom",
                 label="Score",
             )  # danbooru分数
-        with gr.Column(scale=2):
+        with gr.Column(scale=1):
             db_path = gr.Textbox(
                 lines=1,
                 value="./data/danbooru2023.db",
@@ -92,6 +102,7 @@ with gr.Blocks() as blocks:
                 info="Enter output path",
                 label="Output path",
             )  # 输出路径
+        with gr.Column(scale=1):
             id_range_min = gr.Number(
                 value="0",
                 info="Enter id min range",
@@ -120,6 +131,7 @@ with gr.Blocks() as blocks:
         inputs=[
             names,
             required,
+            exclude,
             max,
             ratings,
             score,

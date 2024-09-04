@@ -38,6 +38,18 @@ def select_post_by_required_tags(tag: Tag | list[Tag]) -> ModelSelect:
     )
 
 
+def select_post_by_excluded_tags(tag: Tag | list[Tag]) -> ModelSelect:
+    if isinstance(tag, Tag):
+        ids = [tag.id]
+    else:
+        ids = [tag.id for tag in tag]
+    return Post.select().where(
+        Post.id.not_in(
+            Post.select(Post.id).join(PostTagRelation).join(Tag).where(Tag.id << ids)
+        )
+    )
+
+
 def get_tag_by_name(name: str) -> Tag:
     return Tag.get(Tag.name == name)
 
