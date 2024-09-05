@@ -45,16 +45,13 @@ def haku_character(
 
     if required:
         required_tags = [get_tag_by_name(tag) for tag in required]
-    else:
-        required_tags = []
+        choosed_post_required = select_post_by_required_tags(required_tags)
+        logger.info(f"Found {len(choosed_post_required)} posts for required tags")
 
     if exclude:
         exclude_tags = [get_tag_by_name(tag) for tag in exclude]
-    else:
-        exclude_tags = []
-
-    choosed_post_exclude = select_post_by_excluded_tags(exclude_tags)
-    logger.info(f"Found {len(choosed_post_exclude)} posts for exclude tags")
+        choosed_post_exclude = select_post_by_excluded_tags(exclude_tags)
+        logger.info(f"Found {len(choosed_post_exclude)} posts for exclude tags")
 
     rp = 1
     path = ""
@@ -70,8 +67,6 @@ def haku_character(
 
             choosed_post_characters = select_post_by_tags(target_characters)
             logger.info(f"Found {len(choosed_post_characters)} posts for {name}")
-            choosed_post_required = select_post_by_required_tags(required_tags)
-            logger.info(f"Found {len(choosed_post_required)} posts for required tags")
 
             clean_name = re.sub(r"[^\w\s]", "", name)
 
@@ -79,7 +74,7 @@ def haku_character(
                 max = float("inf")
 
             if score != -1:
-                if required_tags:
+                if required:
                     choosed_post = (
                         choosed_post_required.where(Post.id << choosed_post_characters)
                         .where(Post.id >= id_range_min, Post.id <= id_range_max)
@@ -105,7 +100,7 @@ def haku_character(
                 x = 100
 
                 while True:
-                    if required_tags:
+                    if required:
                         choosed_post = (
                             choosed_post_required.where(
                                 Post.id << choosed_post_characters
@@ -173,15 +168,39 @@ def haku_character(
 
                 exporter.export_posts(choosed_post)
     else:
-        choosed_post = list(
-            Post.select()
-            .where(Post.id >= id_range_min, Post.id <= id_range_max)
-            .where(Post.score >= score)
-            .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
-        )
-
         if max == -1:
             max = float("inf")
+
+        if score != -1:
+            choosed_post = (
+                Post.select()
+                .where(Post.id >= id_range_min, Post.id <= id_range_max)
+                .where(Post.score >= score)
+                .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
+            )
+            if exclude:
+                choosed_post = choosed_post.where(Post.id << choosed_post_exclude)
+            choosed_post = list(choosed_post)
+        else:
+            x = 100
+            while True:
+                choosed_post = (
+                    Post.select()
+                    .where(Post.id >= id_range_min, Post.id <= id_range_max)
+                    .where(Post.score >= x)
+                    .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
+                )
+                if exclude:
+                    choosed_post = choosed_post.where(Post.id << choosed_post_exclude)
+                choosed_post = list(choosed_post)
+
+                if len(choosed_post) >= max:
+                    break
+
+                if x < 0:
+                    break
+
+                x -= 10
 
         if len(choosed_post) >= max and max != float("inf"):
             choosed_post = random.sample(choosed_post, max)

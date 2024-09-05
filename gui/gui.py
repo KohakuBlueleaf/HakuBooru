@@ -79,7 +79,7 @@ with gr.Blocks() as blocks:
                 label="Ratings",
             )  # 评级，越小越安全
             score = gr.Number(
-                value="-1",
+                value="0",
                 info="Enter score threshold, -1 means automatically from top to bottom",
                 label="Score",
             )  # danbooru分数
