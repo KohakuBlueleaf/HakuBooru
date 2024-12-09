@@ -29,9 +29,11 @@ class BaseSource:
 
 
 class WdsSource(BaseSource):
-    def __init__(self, dataset_dir: str):
+    def __init__(self, dataset_dirs: str | list[str]):
         super().__init__()
-        self.dataset_dir = dataset_dir
+        if isinstance(dataset_dirs, str):
+            dataset_dirs = [dataset_dirs]
+        self.dataset_dirs = dataset_dirs
         self.not_found = []
 
         # Read all tar files we have
@@ -39,17 +41,19 @@ class WdsSource(BaseSource):
             int(file_id_regex.match(f).group(1)): [
                 os.path.join(dataset_dir, f).replace("\\", "/")
             ]
+            for dataset_dir in dataset_dirs
             for f in os.listdir(dataset_dir)
             if f.endswith(".tar")
         }
         self.updates_tar = {}
-        if os.path.isdir(os.path.join(dataset_dir, "updates")):
-            for dir in os.listdir(os.path.join(dataset_dir, "updates")):
-                updates_dir = os.path.join(dataset_dir, "updates", dir)
-                for file in os.listdir(updates_dir):
-                    updates_file = os.path.join(updates_dir, file).replace("\\", "/")
-                    if file.endswith(".tar"):
-                        self.updates_tar[updates_file] = updates_file
+        for dataset_dir in dataset_dirs:
+            if os.path.isdir(os.path.join(dataset_dir, "updates")):
+                for dir in os.listdir(os.path.join(dataset_dir, "updates")):
+                    updates_dir = os.path.join(dataset_dir, "updates", dir)
+                    for file in os.listdir(updates_dir):
+                        updates_file = os.path.join(updates_dir, file).replace("\\", "/")
+                        if file.endswith(".tar"):
+                            self.updates_tar[updates_file] = updates_file
         assert len(self.existed_tar), "Dataset is empty"
 
     def _read(self, tar_files: list[str], post_dict: dict[str, Any]):
