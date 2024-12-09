@@ -21,19 +21,19 @@ if __name__ == "__main__":
 
     logger.info("Writing tags to files")
 
-    with open("artists-tags.txt", "w") as f:
+    with open("artist.txt", "w") as f:
         for tag in artists_tags:
             f.write(tag.name.replace("_", " ") + "\n")
 
-    with open("character-tags.txt", "w") as f:
+    with open("characters.txt", "w") as f:
         for tag in character_tags:
             f.write(tag.name.replace("_", " ") + "\n")
 
-    with open("copyright-tags.txt", "w") as f:
+    with open("copyrights.txt", "w") as f:
         for tag in copyright_tags:
             f.write(tag.name.replace("_", " ") + "\n")
 
-    with open("meta-tags.txt", "w") as f:
+    with open("meta.txt", "w") as f:
         for tag in meta_tags:
             f.write(tag.name.replace("_", " ") + "\n")
 
