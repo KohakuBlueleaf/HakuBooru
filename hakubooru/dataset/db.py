@@ -52,6 +52,9 @@ class EnumField(IntegerField):
         self.enum_list = enum_list
         self.enum_map = {value: index for index, value in enumerate(enum_list)}
 
+    def __call__(self, value):
+        return self.enum_map[value]
+
     def db_value(self, value):
         if isinstance(value, str):
             return self.enum_map[value]
@@ -172,6 +175,7 @@ class Post(BaseModel):
 
     @property
     def tag_list_copyright(self):
+        
         return [tag for tag in self.tag_list if tag.type == "copyright"]
 
     @property
