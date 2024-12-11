@@ -53,7 +53,6 @@ def haku_character(
         choosed_post_exclude = select_post_by_excluded_tags(exclude_tags)
         logger.info(f"Found {len(choosed_post_exclude)} posts for exclude tags")
 
-    rp = 1
     path = ""
 
     if names:
@@ -139,12 +138,14 @@ def haku_character(
 
                     x -= 10
 
+            rp = 1
+
             if len(choosed_post) < max and max != float("inf"):
                 rp = max / len(choosed_post)
                 rp = round(rp)
 
             if add_character_category_path:
-                path = "{clean_name}/{rp}_data".format(clean_name=clean_name, rp=rp)
+                path = "{rp}_{clean_name}".format(clean_name=clean_name, rp=rp)
 
             if len(choosed_post) >= max and max != float("inf"):
                 choosed_post = random.sample(choosed_post, max)
