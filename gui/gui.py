@@ -98,7 +98,7 @@ with gr.Blocks() as blocks:
             )  # 图片路径
             output_path = gr.Textbox(
                 lines=1,
-                value="./train_data",
+                value="./out",
                 info="Enter output path",
                 label="Output path",
             )  # 输出路径
@@ -146,4 +146,4 @@ with gr.Blocks() as blocks:
         outputs=output_log,
     )
 
-blocks.launch(share=True, server_port=2104)
+blocks.launch(server_port=2104)
