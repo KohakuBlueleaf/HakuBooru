@@ -28,8 +28,8 @@ The combination of these features not only preserves the integrity of source pla
 
 ## Resources
 
-* [danbooru2023-sqlite](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-sqlite)
-* [danbooru2023-webp-2Mpixel](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-webp-2Mpixel)
+* [danbooru2023-metadata-database](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-metadata-database)
+* [danbooru2023-webp-4Mpixel](https://huggingface.co/datasets/KBlueLeaf/danbooru2023-webp-4Mpixel)
 
 ## Setup
 
@@ -123,9 +123,9 @@ logger.info("Exporting images")
 exporter.export_posts(choosed_post)
 ```
 
-## Optional: Gradio UI
+### Optional: Gradio UI
 
-### Setup
+#### Setup
 
 Build from source:
 
@@ -135,7 +135,8 @@ cd HakuBooru
 python -m pip install -e .[gui]
 ```
 
-### Usage
+#### Usage
+
 ```bash
 python gui/gui.py
 ```
