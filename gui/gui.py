@@ -118,6 +118,7 @@ with gr.Blocks() as blocks:
                 label="Add tag category path",
             )  # 是否根据tags中的名称单独新建文件夹
             export_images = gr.Checkbox(
+                value=True,
                 info="When enabled, images will be exported to the output path.",
                 label="Export images",
             )  # 是否导出图片
@@ -146,4 +147,4 @@ with gr.Blocks() as blocks:
         outputs=output_log,
     )
 
-blocks.launch(server_port=2104)
+blocks.launch(server_port=2104, inbrowser=True)

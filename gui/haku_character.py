@@ -145,7 +145,7 @@ def haku_character(
                 rp = round(rp)
 
             if add_character_category_path:
-                path = "{clean_name}/{rp}_data".format(clean_name=clean_name, rp=rp)
+                path = "{rp}_{clean_name}".format(clean_name=clean_name, rp=rp)
 
             if len(choosed_post) >= max and max != float("inf"):
                 choosed_post = random.sample(choosed_post, max)

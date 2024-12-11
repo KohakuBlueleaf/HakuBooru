@@ -123,6 +123,26 @@ logger.info("Exporting images")
 exporter.export_posts(choosed_post)
 ```
 
+## Optional: Gradio UI
+
+### Setup
+
+Build from source:
+
+```bash
+git clone https://github.com/KohakuBlueleaf/HakuBooru
+cd HakuBooru
+python -m pip install -e .[gui]
+```
+
+### Usage
+```bash
+python gui/gui.py
+```
+
+Than you can see the UI:
+![image](UI.png)
+
 ## Acknowledgement
 
 * GPT4: Refine this README.
