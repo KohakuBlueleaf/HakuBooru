@@ -141,7 +141,7 @@ python -m pip install -e .[gui]
 python gui/gui.py
 ```
 
-Than you can see the UI:
+Next, you can see the UI:
 ![image](UI.png)
 
 ## Acknowledgement
