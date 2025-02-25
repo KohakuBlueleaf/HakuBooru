@@ -172,10 +172,12 @@ def _filter_posts(
     else:
         filtered = query.where(Post.score >= score_threshold)
 
+    filtered = list(filtered)
+
     # Apply max limit
     if max_posts > 0 and len(filtered) > max_posts:
         return random.sample(filtered, max_posts)
-    return list(filtered)
+    return filtered
 
 
 def _export_posts(

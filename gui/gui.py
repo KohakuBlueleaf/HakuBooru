@@ -8,14 +8,14 @@ def gradio_haku(
     names: str,
     required: str,
     exclude: str,
-    max_images: str,
+    max_images: int,
     ratings: str,
-    score: str,
+    score: int,
     db_path: str,
     image_path: str,
     output_path: str,
-    id_range_min: str,
-    id_range_max: str,
+    id_range_min: int,
+    id_range_max: int,
     add_character_category_path: bool,
     export_images: bool,
     process_threads: int,
@@ -32,10 +32,10 @@ def gradio_haku(
         )
 
         # Convert numerical inputs
-        max_posts = _safe_int(max_images, -1)
-        score_value = _safe_int(score, -1)
-        id_min = _safe_int(id_range_min, 0)
-        id_max = _safe_int(id_range_max, 10_000_000)
+        max_posts = max_images if max_images >= 0 else -1
+        score_value = score if score >= 0 else -1
+        id_min = id_range_min
+        id_max = id_range_max
 
         # Convert ratings
         rating_list = []
@@ -90,9 +90,13 @@ with gr.Blocks(title="HakuBooru GUI") as blocks:
                 exclude = gr.Textbox(label="Excluded Tags", placeholder="lowres, nsfw")
 
             with gr.Column():
-                max_images = gr.Number(value=-1, label="Max Images (-1 for no limit)")
+                max_images = gr.Number(
+                    value=-1, label="Max Images (-1 for no limit)", precision=0
+                )
                 ratings = gr.Textbox(value="0,1,2,3", label="Allowed Ratings (0-3)")
-                score = gr.Number(value=0, label="Minimum Score (-1 for auto)")
+                score = gr.Number(
+                    value=-1, label="Minimum Score (-1 for auto)", precision=0
+                )
 
     with gr.Accordion("Advanced Settings", open=False):
         with gr.Row():
@@ -101,11 +105,17 @@ with gr.Blocks(title="HakuBooru GUI") as blocks:
             output_path = gr.Textbox(value="./out", label="Output Directory")
 
         with gr.Row():
-            id_range_min = gr.Number(value=0, label="Minimum Post ID")
-            id_range_max = gr.Number(value=10_000_000, label="Maximum Post ID")
-            add_character_category_path = gr.Checkbox(label="Organize by Tags")
+            id_range_min = gr.Number(value=0, label="Minimum Post ID", precision=0)
+            id_range_max = gr.Number(
+                value=10_000_000, label="Maximum Post ID", precision=0
+            )
+            add_character_category_path = gr.Checkbox(
+                value=True, label="Organize by Tags"
+            )
             export_images = gr.Checkbox(value=True, label="Enable Export")
-            process_threads = gr.Number(value=4, label="Processing Threads")
+            process_threads = gr.Number(
+                value=4, label="Processing Threads", precision=0
+            )
 
     with gr.Accordion("Tag List", open=False):
         with gr.Row():
