@@ -1,130 +1,124 @@
 import gradio as gr
-from haku_character import haku_character
+from gui.haku_character import haku_character
+from tag_list import generate_tag_files
+from typing import Optional
 
 
 def gradio_haku(
-    names,
-    required,
-    exclude,
-    max,
-    ratings,
-    score,
-    db_path,
-    image_path,
-    output_path,
-    id_range_min,
-    id_range_max,
-    add_character_category_path,
-    export_images,
-):
-    names_list = [name.strip() for name in (names.split(",") if names else [])]
-    required_list = [req.strip() for req in (required.split(",") if required else [])]
-    exclude_tags = [exc.strip() for exc in (exclude.split(",") if exclude else [])]
-    max_image = int(max)
-    ratings_list = [int(r.strip()) for r in ratings.split(",")]
-    score = int(score)
-    id_min = int(id_range_min)
-    id_max = int(id_range_max)
-    log_contents = haku_character(
-        names_list,
-        required_list,
-        exclude_tags,
-        max_image,
-        ratings_list,
-        score,
-        db_path,
-        image_path,
-        output_path,
-        id_min,
-        id_max,
-        add_character_category_path,
-        export_images,
-    )
-    return log_contents
+    names: str,
+    required: str,
+    exclude: str,
+    max_images: str,
+    ratings: str,
+    score: str,
+    db_path: str,
+    image_path: str,
+    output_path: str,
+    id_range_min: str,
+    id_range_max: str,
+    add_character_category_path: bool,
+    export_images: bool,
+    process_threads: int,
+) -> str:
+    """Wrapper function for Gradio interface."""
+    try:
+        # Input validation
+        names_list = [n.strip() for n in names.split(",") if n.strip()] if names else []
+        required_list = (
+            [r.strip() for r in required.split(",") if r.strip()] if required else []
+        )
+        exclude_list = (
+            [e.strip() for e in exclude.split(",") if e.strip()] if exclude else []
+        )
+
+        # Convert numerical inputs
+        max_posts = _safe_int(max_images, -1)
+        score_value = _safe_int(score, -1)
+        id_min = _safe_int(id_range_min, 0)
+        id_max = _safe_int(id_range_max, 10_000_000)
+
+        # Convert ratings
+        rating_list = []
+        for r in ratings.split(","):
+            rating = _safe_int(r.strip(), default=None)
+            if rating is None or rating not in {0, 1, 2, 3}:
+                raise ValueError(f"Invalid rating value: {r}")
+            rating_list.append(rating)
+
+        return haku_character(
+            names=names_list,
+            required=required_list,
+            exclude=exclude_list,
+            max_posts=max_posts,
+            ratings=rating_list,
+            score_threshold=score_value,
+            db_path=db_path,
+            image_path=image_path,
+            output_path=output_path,
+            id_range_min=id_min,
+            id_range_max=id_max,
+            add_character_category_path=add_character_category_path,
+            export_images=export_images,
+            process_threads=process_threads,
+        )
+    except Exception as e:
+        return f"Error occurred: {str(e)}"
 
 
-with gr.Blocks() as blocks:
-    gr.Markdown(
-        "## [HakuBooru](https://github.com/KohakuBlueleaf/HakuBooru) GUI Beta version"
-    )
-    with gr.Row():
-        with gr.Column(scale=1):
-            names = gr.Textbox(
-                lines=5,
-                # value="kamisato_ayaka,seele_vollerei",
-                info="Enter tags separated by commas, such as: kamisato_ayaka,seele_vollerei",
-                label="Tags (Not mandatory)",
-            )  # tag列表
-            required = gr.Textbox(
-                lines=1,
-                # value="solo,highres",
-                info="Enter required tags separated by commas, such as: solo,highres",
-                label="else required tags(Not mandatory; this field is only available if 'Tags' is filled in.)",
-            )  # 必要的标签
-            exclude = gr.Textbox(
-                lines=1,
-                # value="lowres",
-                info="Enter exclude tags separated by commas, such as: lowres",
-                label="exclude tags(Not mandatory)",
-            )  # 排除的标签
-        with gr.Column(scale=1):
-            max = gr.Number(
-                value="-1",
-                info="Enter images max number, -1 means no limit",
-                label="Max Images",
-            )  # 最大数量
-            ratings = gr.Textbox(
-                value="0,1,2,3",
-                info="Enter rating number(s) separated by commas, such as: 0,1,2,3. 0 means safe, 3 means nsfw",
-                label="Ratings",
-            )  # 评级，越小越安全
-            score = gr.Number(
-                value="0",
-                info="Enter score threshold, -1 means automatically from top to bottom",
-                label="Score",
-            )  # danbooru分数
-        with gr.Column(scale=1):
-            db_path = gr.Textbox(
-                lines=1,
-                value="./data/danbooru2023.db",
-                info="Enter database path",
-                label="DataBase path",
-            )  # 数据库路径
-            image_path = gr.Textbox(
-                lines=1,
-                value="./images",
-                info="Enter images path",
-                label="Images path",
-            )  # 图片路径
-            output_path = gr.Textbox(
-                lines=1,
-                value="./train_data",
-                info="Enter output path",
-                label="Output path",
-            )  # 输出路径
-        with gr.Column(scale=1):
-            id_range_min = gr.Number(
-                value="0",
-                info="Enter id min range",
-                label="ID Min",
-            )  # id范围
-            id_range_max = gr.Number(
-                value="10000000",
-                info="Enter id max range",
-                label="ID Max",
-            )  # id范围
-            add_character_category_path = gr.Checkbox(
-                info="When enabled, folders will be automatically categorized based on the tags.",
-                label="Add tag category path",
-            )  # 是否根据tags中的名称单独新建文件夹
-            export_images = gr.Checkbox(
-                info="When enabled, images will be exported to the output path.",
-                label="Export images",
-            )  # 是否导出图片
-    with gr.Row():
-        run_button = gr.Button("Start")
-    with gr.Row():
-        output_log = gr.Textbox(label="Log contents")
+def _safe_int(value: str, default: Optional[int] = None) -> int:
+    """Safely convert string to integer."""
+    try:
+        return int(value.strip())
+    except (ValueError, AttributeError):
+        return default if default is not None else 0
+
+
+with gr.Blocks(title="HakuBooru GUI") as blocks:
+    gr.Markdown("# HakuBooru GUI")
+
+    with gr.Accordion("Basic Settings", open=True):
+        with gr.Row():
+            with gr.Column(min_width=300):
+                names = gr.Textbox(
+                    lines=3,
+                    label="Tags (comma-separated)",
+                    placeholder="Enter tags like: kamisato_ayaka, seele_vollerei",
+                )
+                required = gr.Textbox(
+                    label="Required Tags", placeholder="solo, highres"
+                )
+                exclude = gr.Textbox(label="Excluded Tags", placeholder="lowres, nsfw")
+
+            with gr.Column():
+                max_images = gr.Number(value=-1, label="Max Images (-1 for no limit)")
+                ratings = gr.Textbox(value="0,1,2,3", label="Allowed Ratings (0-3)")
+                score = gr.Number(value=0, label="Minimum Score (-1 for auto)")
+
+    with gr.Accordion("Advanced Settings", open=False):
+        with gr.Row():
+            db_path = gr.Textbox(value="./data/danbooru2023.db", label="Database Path")
+            image_path = gr.Textbox(value="./images/images", label="Image Archive Path")
+            output_path = gr.Textbox(value="./out", label="Output Directory")
+
+        with gr.Row():
+            id_range_min = gr.Number(value=0, label="Minimum Post ID")
+            id_range_max = gr.Number(value=10_000_000, label="Maximum Post ID")
+            add_character_category_path = gr.Checkbox(label="Organize by Tags")
+            export_images = gr.Checkbox(value=True, label="Enable Export")
+            process_threads = gr.Number(value=4, label="Processing Threads")
+
+    with gr.Accordion("Tag List", open=False):
+        with gr.Row():
+            tag_db_path = gr.Textbox(
+                value="./data/danbooru2023.db", label="Database Path"
+            )
+            tag_output_dir = gr.Textbox(
+                value="./out/tag_list", label="Output Directory"
+            )
+        gen_tags_btn = gr.Button("Export Tag List", variant="secondary")
+
+    run_button = gr.Button("Start Processing", variant="primary")
+    output_log = gr.Textbox(label="Processing Log", interactive=False, lines=20)
 
     run_button.click(
         gradio_haku,
@@ -132,7 +126,7 @@ with gr.Blocks() as blocks:
             names,
             required,
             exclude,
-            max,
+            max_images,
             ratings,
             score,
             db_path,
@@ -142,8 +136,17 @@ with gr.Blocks() as blocks:
             id_range_max,
             add_character_category_path,
             export_images,
+            process_threads,
         ],
         outputs=output_log,
+        concurrency_limit=1,  # Prevent concurrent executions
     )
 
-blocks.launch(share=True, server_port=2104)
+    gen_tags_btn.click(
+        generate_tag_files,
+        inputs=[tag_db_path, tag_output_dir],
+        outputs=output_log,
+        concurrency_limit=1,
+    )
+
+blocks.launch(server_port=2104, inbrowser=True, show_error=True)

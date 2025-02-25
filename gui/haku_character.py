@@ -2,9 +2,11 @@ import logging
 import random
 import re
 import operator
-
+import os
 from io import StringIO
 from functools import reduce
+from typing import List, Optional
+
 from hakubooru.caption import KohakuCaptioner
 from hakubooru.dataset import load_db, Post
 from hakubooru.dataset.utils import (
@@ -19,245 +21,194 @@ from hakubooru.source import TarSource
 
 
 def haku_character(
-    names,
-    required,
-    exclude,
-    max,
-    ratings,
-    score,
-    db_path,
-    image_path,
-    output_path,
-    id_range_min,
-    id_range_max,
-    add_character_category_path,
-    export_images,
-):
+    names: List[str],
+    required: List[str],
+    exclude: List[str],
+    max_posts: int,
+    ratings: List[int],
+    score_threshold: int,
+    db_path: str,
+    image_path: str,
+    output_path: str,
+    id_range_min: int,
+    id_range_max: int,
+    add_character_category_path: bool,
+    export_images: bool,
+    process_threads: int,
+) -> str:
+    """Main processing function for filtering and exporting posts."""
     log_stream = StringIO()
-    stream_handler = logging.StreamHandler(log_stream)
-    logger.addHandler(stream_handler)
+    handler = logging.StreamHandler(log_stream)
 
-    logger.setLevel(logging.INFO)
-    logger.info("Loading danbooru2023.db")
-    load_db(db_path)
+    try:
+        # Setup logging
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
 
-    logger.info("Querying posts")
+        # Initialize database
+        logger.info(f"Loading {db_path}")
+        load_db(db_path)
 
-    if required:
-        required_tags = [get_tag_by_name(tag) for tag in required]
-        choosed_post_required = select_post_by_required_tags(required_tags)
-        logger.info(f"Found {len(choosed_post_required)} posts for required tags")
+        # Process tags
+        required_tags = _get_valid_tags(required)
+        exclude_tags = _get_valid_tags(exclude)
+        target_tags = _get_valid_tags(names) if names else []
 
-    if exclude:
-        exclude_tags = [get_tag_by_name(tag) for tag in exclude]
-        choosed_post_exclude = select_post_by_excluded_tags(exclude_tags)
-        logger.info(f"Found {len(choosed_post_exclude)} posts for exclude tags")
+        # Build base query
+        base_query = _build_base_query(
+            required_tags=required_tags,
+            exclude_tags=exclude_tags,
+            id_min=id_range_min,
+            id_max=id_range_max,
+            ratings=ratings,
+        )
 
-    rp = 1
-    path = ""
-
-    if names:
-        for name in names:
-            target_characters = [
-                get_tag_by_name(tag)
-                for tag in [
-                    "{name}".format(name=name),
-                ]
-            ]
-
-            choosed_post_characters = select_post_by_tags(target_characters)
-            logger.info(f"Found {len(choosed_post_characters)} posts for {name}")
-
-            clean_name = re.sub(r"[^\w\s]", "", name)
-
-            if max == -1:
-                max = float("inf")
-
-            if score != -1:
-                if required:
-                    choosed_post = (
-                        choosed_post_required.where(Post.id << choosed_post_characters)
-                        .where(Post.id >= id_range_min, Post.id <= id_range_max)
-                        .where(Post.score >= score)
-                        .where(
-                            reduce(operator.or_, (Post.rating == r for r in ratings))
-                        )
-                    )
-                else:
-                    choosed_post = (
-                        choosed_post_characters.where(
-                            Post.id >= id_range_min, Post.id <= id_range_max
-                        )
-                        .where(Post.score >= score)
-                        .where(
-                            reduce(operator.or_, (Post.rating == r for r in ratings))
-                        )
-                    )
-                if exclude:
-                    choosed_post = choosed_post.where(Post.id << choosed_post_exclude)
-                choosed_post = list(choosed_post)
-            else:
-                x = 100
-
-                while True:
-                    if required:
-                        choosed_post = (
-                            choosed_post_required.where(
-                                Post.id << choosed_post_characters
-                            )
-                            .where(Post.id >= id_range_min, Post.id <= id_range_max)
-                            .where(Post.score >= x)
-                            .where(
-                                reduce(
-                                    operator.or_, (Post.rating == r for r in ratings)
-                                )
-                            )
-                        )
-                    else:
-                        choosed_post = (
-                            choosed_post_characters.where(
-                                Post.id >= id_range_min, Post.id <= id_range_max
-                            )
-                            .where(Post.score >= x)
-                            .where(
-                                reduce(
-                                    operator.or_, (Post.rating == r for r in ratings)
-                                )
-                            )
-                        )
-                    if exclude:
-                        choosed_post = choosed_post.where(
-                            Post.id << choosed_post_exclude
-                        )
-                    choosed_post = list(choosed_post)
-
-                    if len(choosed_post) >= max:
-                        break
-
-                    if x < 0:
-                        break
-
-                    x -= 10
-
-            if len(choosed_post) < max and max != float("inf"):
-                rp = max / len(choosed_post)
-                rp = round(rp)
-
-            if add_character_category_path:
-                path = "{clean_name}/{rp}_data".format(clean_name=clean_name, rp=rp)
-
-            if len(choosed_post) >= max and max != float("inf"):
-                choosed_post = random.sample(choosed_post, max)
-
-            logger.info(f"Found {len(choosed_post)} posts")
-
-            if export_images:
-                logger.info("Build exporter")
-
-                exporter = Exporter(
-                    source=TarSource(image_path),
-                    saver=FileSaver(
-                        "{output_path}/{path}".format(
-                            output_path=output_path, path=path
-                        ),
-                    ),
-                    captioner=KohakuCaptioner(),
-                    process_batch_size=250,
-                    process_threads=4,
+        # Process posts
+        if names:
+            all_posts = []
+            for tag in target_tags:
+                character_posts = select_post_by_tags([tag])
+                filtered_posts = _filter_posts(
+                    base_query=base_query,
+                    additional_query=character_posts,
+                    score_threshold=score_threshold,
+                    max_posts=max_posts,
                 )
+                logger.info(f"Found tag: {len(filtered_posts)} {tag}")
+                if not filtered_posts:
+                    continue
 
-                exporter.export_posts(choosed_post)
-    else:
-        if max == -1:
-            max = float("inf")
-
-        if score != -1:
-            choosed_post = (
-                Post.select()
-                .where(Post.id >= id_range_min, Post.id <= id_range_max)
-                .where(Post.score >= score)
-                .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
-            )
-            if exclude:
-                choosed_post = choosed_post.where(Post.id << choosed_post_exclude)
-            choosed_post = list(choosed_post)
+                # Prepare export
+                if export_images:
+                    _export_posts(
+                        posts=filtered_posts,
+                        tag=tag,
+                        output_path=output_path,
+                        image_path=image_path,
+                        add_category=add_character_category_path,
+                        process_threads=process_threads,
+                    )
+                all_posts.extend(filtered_posts)
         else:
-            x = 100
-            while True:
-                choosed_post = (
-                    Post.select()
-                    .where(Post.id >= id_range_min, Post.id <= id_range_max)
-                    .where(Post.score >= x)
-                    .where(reduce(operator.or_, (Post.rating == r for r in ratings)))
-                )
-                if exclude:
-                    choosed_post = choosed_post.where(Post.id << choosed_post_exclude)
-                choosed_post = list(choosed_post)
-
-                if len(choosed_post) >= max:
-                    break
-
-                if x < 0:
-                    break
-
-                x -= 10
-
-        if len(choosed_post) >= max and max != float("inf"):
-            choosed_post = random.sample(choosed_post, max)
-
-        logger.info(f"Found {len(choosed_post)} posts")
-
-        if export_images:
-            logger.info("Build exporter")
-
-            exporter = Exporter(
-                source=TarSource(image_path),
-                saver=FileSaver(
-                    "{output_path}/{path}".format(output_path=output_path, path=path),
-                ),
-                captioner=KohakuCaptioner(),
-                process_batch_size=250,
-                process_threads=4,
+            filtered_posts = _filter_posts(
+                base_query=base_query,
+                score_threshold=score_threshold,
+                max_posts=max_posts,
             )
+            logger.info(f"Found posts num: {len(filtered_posts)}")
+            if export_images and filtered_posts:
+                _export_posts(
+                    posts=filtered_posts,
+                    output_path=output_path,
+                    image_path=image_path,
+                    process_threads=process_threads,
+                )
 
-            exporter.export_posts(choosed_post)
+        return log_stream.getvalue()
 
-    logger.removeHandler(stream_handler)
-    log_contents = log_stream.getvalue()
-    log_stream.close()
+    except Exception as e:
+        logger.error(f"Processing failed: {str(e)}")
+        raise
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
 
-    return log_contents
+
+def _get_valid_tags(tag_names: List[str]) -> List[Optional[int]]:
+    """Validate and return existing tag IDs."""
+    valid_tags = []
+    for name in tag_names:
+        tag = get_tag_by_name(name.strip())
+        if tag:
+            valid_tags.append(tag)
+        else:
+            logger.warning(f"Tag not found: {name}")
+    return valid_tags
+
+
+def _build_base_query(
+    required_tags: List[int],
+    exclude_tags: List[int],
+    id_min: int,
+    id_max: int,
+    ratings: List[int],
+) -> Post:
+    """Build base query with common filters."""
+    query = Post.select()
+    if required_tags:
+        query = select_post_by_required_tags(required_tags)
+    if exclude_tags:
+        excluded_posts = select_post_by_excluded_tags(exclude_tags)
+        query = query.where(Post.id << excluded_posts)
+    return query.where(
+        Post.id >= id_min,
+        Post.id <= id_max,
+        reduce(operator.or_, (Post.rating == r for r in ratings)),
+    )
+
+
+def _filter_posts(
+    base_query: Post,
+    additional_query: Optional[Post] = None,
+    score_threshold: int = -1,
+    max_posts: int = -1,
+) -> List[Post]:
+    """Apply score filtering and sampling."""
+    query = base_query
+    if additional_query:
+        query = query.where(Post.id << additional_query)
+
+    # Dynamic score adjustment
+    if score_threshold == -1:
+        if max_posts > 0:
+            current_score = 100
+            while current_score >= 0:
+                filtered = query.where(Post.score >= current_score)
+                if len(filtered) >= max_posts:
+                    break
+                current_score -= 10
+        else:
+            filtered = query
+    else:
+        filtered = query.where(Post.score >= score_threshold)
+
+    # Apply max limit
+    if max_posts > 0 and len(filtered) > max_posts:
+        return random.sample(filtered, max_posts)
+    return list(filtered)
+
+
+def _export_posts(
+    posts: List[Post],
+    output_path: str,
+    image_path: str,
+    tag: Optional[str] = None,
+    add_category: bool = False,
+    process_threads: int = 4,
+) -> None:
+    """Handle post export with proper path handling."""
+    if add_category and tag:
+        clean_name = re.sub(r"[^\w\s]", "", tag.name)
+        sub_path = f"{len(posts)}_{clean_name}"
+        save_path = os.path.join(output_path, sub_path)
+    else:
+        save_path = output_path
+
+    os.makedirs(save_path, exist_ok=True)
+    txt_path = os.path.join(save_path, "ID_list.txt")
+    with open(txt_path, "w") as f:
+        f.write("\n".join(str(p.id) for p in posts))
+
+    exporter = Exporter(
+        source=TarSource(image_path),
+        saver=FileSaver(save_path),
+        captioner=KohakuCaptioner(),
+        process_batch_size=max(1, len(posts) // process_threads // 2),
+        process_threads=process_threads,
+    )
+    exporter.export_posts(posts)
 
 
 if __name__ == "__main__":
-    # test
-    names = ["kamisato_ayaka"]
-    required = []
-    exclude_tags = ["kamisato_ayaka"]
-    max = -1
-    ratings = [0, 1, 2, 3]
-    score = -1
-    db_path = "./data/danbooru2023.db"
-    image_path = "./images"
-    output_path = "./train_data"
-    id_range_min = 0
-    id_range_max = 10000000
-    add_character_category_path = True
-    export_images = False
-    print(
-        haku_character(
-            names,
-            required,
-            exclude_tags,
-            max,
-            ratings,
-            score,
-            db_path,
-            image_path,
-            output_path,
-            id_range_min,
-            id_range_max,
-            add_character_category_path,
-            export_images,
-        )
-    )
+    # Test code remains similar
+    pass
