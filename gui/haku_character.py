@@ -35,6 +35,8 @@ def haku_character(
     add_character_category_path: bool,
     export_images: bool,
     process_threads: int,
+    export_id_file: Optional[str] = None,
+    id_list: Optional[List[int]] = None,
 ) -> str:
     """Main processing function for filtering and exporting posts."""
     log_stream = StringIO()
@@ -48,6 +50,30 @@ def haku_character(
         # Initialize database
         logger.info(f"Loading {db_path}")
         load_db(db_path)
+
+        # Add ID list Export
+        if id_list or export_id_file:
+            logger.info("Enter ID export mode")
+
+            all_ids = []
+            if id_list:
+                all_ids.extend(id_list)
+            if export_id_file:
+                try:
+                    with open(export_id_file, "r") as f:
+                        all_ids.extend(int(line.strip()) for line in f if line.strip())
+                except Exception as e:
+                    logger.error(f"File load failed: {str(e)}")
+
+            unique_ids = list(set(all_ids))
+            posts = query_posts_by_ids(unique_ids)
+
+            if export_images and posts:
+                _export_posts(
+                    posts=posts, output_path=output_path, image_path=image_path
+                )
+
+            return log_stream.getvalue()
 
         # Process tags
         required_tags = _get_valid_tags(required)
@@ -172,10 +198,25 @@ def _filter_posts(
     else:
         filtered = query.where(Post.score >= score_threshold)
 
+    filtered = list(filtered)
+
     # Apply max limit
     if max_posts > 0 and len(filtered) > max_posts:
         return random.sample(filtered, max_posts)
-    return list(filtered)
+    return filtered
+
+
+def query_posts_by_ids(post_ids: List[int]) -> List[Post]:
+    """Query posts based on ID list."""
+    valid_ids = [pid for pid in post_ids if isinstance(pid, int) and pid > 0]
+    if not valid_ids:
+        return []
+
+    try:
+        return list(Post.select().where(Post.id << valid_ids))
+    except Exception as e:
+        logger.error(f"Processing failed: {str(e)}")
+        return []
 
 
 def _export_posts(
