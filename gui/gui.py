@@ -19,6 +19,8 @@ def gradio_haku(
     add_character_category_path: bool,
     export_images: bool,
     process_threads: int,
+    id_input: str,
+    id_file: Optional[str],
 ) -> str:
     """Wrapper function for Gradio interface."""
     try:
@@ -45,6 +47,57 @@ def gradio_haku(
                 raise ValueError(f"Invalid rating value: {r}")
             rating_list.append(rating)
 
+        # Convert ID inputs
+        id_list = []
+        error_msgs = []
+
+        if id_input:
+            invalid_lines = []
+            for idx, line in enumerate(id_input.splitlines(), start=1):
+                stripped = line.strip()
+                if not stripped:
+                    continue
+
+                try:
+                    # Allow for other characters before and after but with significant digits,such as "ID: 123"
+                    number = int("".join(filter(str.isdigit, stripped)))
+                    id_list.append(number)
+                except ValueError:
+                    invalid_lines.append(f"The {idx} line: {stripped}")
+
+            if invalid_lines:
+                error_msgs.append(
+                    "The following line contains an invalid ID format:"
+                    + "\n".join(invalid_lines)
+                )
+
+        if id_file:
+            try:
+                with open(id_file, "r") as f:
+                    file_ids = []
+                    for line_num, line in enumerate(f, start=1):
+                        stripped = line.strip()
+                        if not stripped:
+                            continue
+                        try:
+                            file_ids.append(int(stripped))
+                        except ValueError:
+                            error_msgs.append(
+                                f"File's {line_num} line is invalid: {stripped}"
+                            )
+                    id_list.extend(file_ids)
+            except Exception as e:
+                error_msgs.append(f"File load failed: {str(e)}")
+
+        unique_ids = list(set(id_list))
+        if len(unique_ids) != len(id_list):
+            error_msgs.append(
+                f"Find duplicate ID, removed duplicates (remaining {len(unique_ids)})"
+            )
+
+        if error_msgs:
+            return "\n".join(error_msgs)
+
         return haku_character(
             names=names_list,
             required=required_list,
@@ -60,6 +113,8 @@ def gradio_haku(
             add_character_category_path=add_character_category_path,
             export_images=export_images,
             process_threads=process_threads,
+            id_list=unique_ids,
+            export_id_file=id_file,
         )
     except Exception as e:
         return f"Error occurred: {str(e)}"
@@ -98,7 +153,7 @@ with gr.Blocks(title="HakuBooru GUI") as blocks:
                     value=-1, label="Minimum Score (-1 for auto)", precision=0
                 )
 
-    with gr.Accordion("Advanced Settings", open=False):
+    with gr.Accordion("Advanced Settings", open=True):
         with gr.Row():
             db_path = gr.Textbox(value="./data/danbooru2023.db", label="Database Path")
             image_path = gr.Textbox(value="./images/images", label="Image Archive Path")
@@ -127,6 +182,20 @@ with gr.Blocks(title="HakuBooru GUI") as blocks:
             )
         gen_tags_btn = gr.Button("Export Tag List", variant="secondary")
 
+    with gr.Accordion("ID List", open=False):
+        gr.Markdown(
+            "When the `ID list` is not None, all conditions in the `Basic Settings` will be ignored."
+        )
+        with gr.Row():
+            id_input = gr.Textbox(
+                label="List of ID inputs",
+                placeholder="Example:\n12345\n67890\n13579",
+                lines=3,
+            )
+            id_file = gr.File(
+                label="Or upload ID list file", file_types=[".txt"], type="filepath"
+            )
+
     run_button = gr.Button("Start Processing", variant="primary")
     output_log = gr.Textbox(label="Processing Log", interactive=False, lines=20)
 
@@ -147,6 +216,8 @@ with gr.Blocks(title="HakuBooru GUI") as blocks:
             add_character_category_path,
             export_images,
             process_threads,
+            id_input,
+            id_file,
         ],
         outputs=output_log,
         concurrency_limit=1,  # Prevent concurrent executions
